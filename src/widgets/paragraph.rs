@@ -200,6 +200,86 @@ impl<'a> Paragraph<'a> {
         self.alignment = alignment;
         self
     }
+
+    ///
+    /// Returns the notional cursor offset position given the text, style and wrapping,
+    /// given a user cursor input offset into the text
+    ///
+    ///
+    pub fn cursor_offset(&self, area: Rect, wrap_offsets: (u16, u16), trailing_nl: u16) -> (u16, u16) {
+        let (mut wrap_behind, wrap_ahead) = wrap_offsets;
+
+        let text_area = match &self.block {
+            Some(b) => {
+                let inner_area = b.inner(area);
+                inner_area
+            }
+            None => area,
+        };
+
+        let style = self.style;
+        let styled = self.text.lines.iter().map(|line| {
+            (
+                line.spans
+                    .iter()
+                    .flat_map(|span| span.styled_graphemes(style)),
+                line.alignment.unwrap_or(self.alignment),
+            )
+        });
+
+        let mut line_composer: Box<dyn LineComposer> = if let Some(Wrap { trim }) = self.wrap {
+            Box::new(WordWrapper::new(styled, text_area.width, trim))
+        } else {
+            Box::new(LineTruncator::new(styled, text_area.width))
+        };
+        let mut y = 0 as u16;
+        let mut x = 0;
+        while let Some((line, width, alignment)) = line_composer.next_line() {
+            x = get_line_offset(width, text_area.width, alignment);
+            for sg in line {
+                let symbol_width = sg.symbol.width();
+                x += symbol_width as u16;
+            }
+            y += 1;
+        }
+        // NB: May need to take into account alignment for last line in this one.
+        if y > 0 {
+            if x == text_area.width {
+                x = 0;
+            } else {
+                y -= 1;
+            }
+        } else {
+            x = 0;
+        }
+
+        if wrap_behind > 0 {
+            if wrap_behind > x {
+                wrap_behind -= x;
+                x = text_area.right().saturating_sub(wrap_behind);
+                y = y.saturating_sub(1);
+            } else {
+                x -= wrap_behind;
+            }
+        } else {
+            if trailing_nl > 0 {
+                x = 0;
+            }
+            if wrap_ahead > 0 {
+                x = x.saturating_add(wrap_ahead);
+                if x >= text_area.width {
+                    x -= text_area.width;
+                    // account for new line as pseudo space
+                    x = x.saturating_sub(1);
+                    // next line for y
+                    y = y.saturating_add(1);
+                }
+            }
+            y = y.saturating_add(trailing_nl);
+        }
+
+        (x, y)
+    }
 }
 
 impl<'a> Widget for Paragraph<'a> {
