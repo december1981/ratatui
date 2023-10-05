@@ -206,16 +206,8 @@ impl<'a> Paragraph<'a> {
     /// given a user cursor input offset into the text
     ///
     ///
-    pub fn cursor_offset(&self, area: Rect, wrap_offsets: (u16, u16), trailing_nl: u16) -> (u16, u16) {
+    pub fn cursor_offset(&self, text_area: Rect, wrap_offsets: (u16, u16), trailing_nl: u16) -> (u16, u16) {
         let (mut wrap_behind, wrap_ahead) = wrap_offsets;
-
-        let text_area = match &self.block {
-            Some(b) => {
-                let inner_area = b.inner(area);
-                inner_area
-            }
-            None => area,
-        };
 
         let style = self.style;
         let styled = self.text.lines.iter().map(|line| {
@@ -234,48 +226,64 @@ impl<'a> Paragraph<'a> {
         };
         let mut y = 0 as u16;
         let mut x = 0;
+        let mut last_aligned_start_x: Option<u16> = None;
         while let Some((line, width, alignment)) = line_composer.next_line() {
             x = get_line_offset(width, text_area.width, alignment);
+            last_aligned_start_x = Some(x);
             for sg in line {
                 let symbol_width = sg.symbol.width();
                 x += symbol_width as u16;
             }
             y += 1;
         }
-        // NB: May need to take into account alignment for last line in this one.
-        if y > 0 {
+
+        let base_start_x = get_line_offset(0, text_area.width, self.alignment);
+        let aligned_start_x = if y > 0 {
             if x == text_area.width {
-                x = 0;
+                // go back to baseline, but increase y (by not decrementing it.)
+                x = base_start_x;
+                x
             } else {
                 y -= 1;
+                last_aligned_start_x.unwrap()
             }
         } else {
-            x = 0;
-        }
+            x = base_start_x;
+            x
+        };
 
         if wrap_behind > 0 {
-            if wrap_behind > x {
-                wrap_behind -= x;
-                x = text_area.right().saturating_sub(wrap_behind);
-                y = y.saturating_sub(1);
-            } else {
-                x -= wrap_behind;
+            let mut consume = x.saturating_sub(aligned_start_x);
+            loop {
+                if wrap_behind > consume {
+                    wrap_behind -= consume;
+                    x = text_area.width;
+                    consume = text_area.width;
+                    y = y.saturating_sub(1);
+                } else {
+                    x -= wrap_behind;
+                    break;
+                }
             }
         } else {
             if trailing_nl > 0 {
-                x = 0;
+                x = base_start_x;
+                y = y.saturating_add(trailing_nl);
             }
             if wrap_ahead > 0 {
                 x = x.saturating_add(wrap_ahead);
                 if x >= text_area.width {
-                    x -= text_area.width;
-                    // account for new line as pseudo space
-                    x = x.saturating_sub(1);
-                    // next line for y
-                    y = y.saturating_add(1);
+                    while x >= text_area.width {
+                        x -= text_area.width;
+                        // account for new line as pseudo space
+                        x = x.saturating_sub(1);
+                        // next line for y
+                        y = y.saturating_add(1);
+                    }
+                    // apply alignment to space forward wrapped x.
+                    x += get_line_offset(x, text_area.width, self.alignment);
                 }
             }
-            y = y.saturating_add(trailing_nl);
         }
 
         (x, y)
