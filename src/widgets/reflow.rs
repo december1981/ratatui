@@ -2,17 +2,13 @@ use std::{collections::VecDeque, vec::IntoIter};
 
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
-
+use streaming_iterator::StreamingIterator;
 use crate::{layout::Alignment, text::StyledGrapheme};
 
 const NBSP: &str = "\u{00a0}";
 
-/// A state machine to pack styled symbols into lines.
-/// Cannot implement it as Iterator since it yields slices of the internal buffer (need streaming
-/// iterators for that).
-pub trait LineComposer<'a> {
-    fn next_line(&mut self) -> Option<(&[StyledGrapheme<'a>], u16, Alignment)>;
-}
+pub type LineComposerItem<'a> = (Vec<StyledGrapheme<'a>>, u16, Alignment);
+
 
 /// A state machine that wraps lines on word boundaries.
 #[derive(Debug, Default, Clone)]
@@ -29,7 +25,7 @@ where
     max_line_width: u16,
     wrapped_lines: Option<IntoIter<Vec<StyledGrapheme<'a>>>>,
     current_alignment: Alignment,
-    current_line: Vec<StyledGrapheme<'a>>,
+    current_line_detail: Option<LineComposerItem<'a>>,
     /// Removes the leading whitespace from lines
     trim: bool,
 }
@@ -44,21 +40,28 @@ where
             input_lines: lines,
             max_line_width,
             wrapped_lines: None,
+            current_line_detail: None,
             current_alignment: Alignment::Left,
-            current_line: vec![],
             trim,
         }
     }
 }
 
-impl<'a, O, I> LineComposer<'a> for WordWrapper<'a, O, I>
+impl<'a, O, I> StreamingIterator for WordWrapper<'a, O, I>
 where
     O: Iterator<Item = (I, Alignment)>,
     I: Iterator<Item = StyledGrapheme<'a>>,
 {
-    fn next_line(&mut self) -> Option<(&[StyledGrapheme<'a>], u16, Alignment)> {
+    type Item = LineComposerItem<'a>;
+
+    fn get(&self) -> Option<&Self::Item> {
+        self.current_line_detail.as_ref()
+    }
+
+    fn advance(&mut self) {
         if self.max_line_width == 0 {
-            return None;
+            assert!(self.current_line_detail.is_none());
+            return;
         }
 
         let mut current_line: Option<Vec<StyledGrapheme<'a>>> = None;
@@ -80,7 +83,7 @@ where
             // When no more preprocessed wrapped lines
             if current_line.is_none() {
                 // Try to calculate next wrapped lines based on current whole line
-                if let Some((line_symbols, line_alignment)) = &mut self.input_lines.next() {
+                if let Some((line_symbols, line_alignment)) = self.input_lines.next().as_mut() {
                     // Save the whole line's alignment
                     self.current_alignment = *line_alignment;
                     let mut wrapped_lines = vec![]; // Saves the wrapped lines
@@ -197,14 +200,12 @@ where
                 }
             }
         }
-
-        if let Some(line) = current_line {
-            self.current_line = line;
-            Some((&self.current_line[..], line_width, self.current_alignment))
+        if let Some(current_line) = current_line.as_mut() {
+            self.current_line_detail = Some((std::mem::take(current_line), line_width, self.current_alignment));
         } else {
-            None
+            self.current_line_detail = None;
         }
-    }
+}
 }
 
 /// A state machine that truncates overhanging lines.
@@ -220,7 +221,7 @@ where
     /// The given, unprocessed lines
     input_lines: O,
     max_line_width: u16,
-    current_line: Vec<StyledGrapheme<'a>>,
+    current_line_detail: Option<LineComposerItem<'a>>,
     /// Record the offset to skip render
     horizontal_offset: u16,
 }
@@ -235,7 +236,7 @@ where
             input_lines: lines,
             max_line_width,
             horizontal_offset: 0,
-            current_line: vec![],
+            current_line_detail: None,
         }
     }
 
@@ -244,27 +245,43 @@ where
     }
 }
 
-impl<'a, O, I> LineComposer<'a> for LineTruncator<'a, O, I>
+impl<'a, O, I> StreamingIterator for LineTruncator<'a, O, I>
 where
     O: Iterator<Item = (I, Alignment)>,
     I: Iterator<Item = StyledGrapheme<'a>>,
 {
-    fn next_line(&mut self) -> Option<(&[StyledGrapheme<'a>], u16, Alignment)> {
+    type Item = LineComposerItem<'a>;
+
+    fn get(&self) -> Option<&Self::Item> {
+        self.current_line_detail.as_ref()
+    }
+
+    fn advance(&mut self) {
         if self.max_line_width == 0 {
-            return None;
+            assert!(self.current_line_detail.is_none());
+            return;
         }
 
-        self.current_line.truncate(0);
+        let mut current_line = vec![];
+
+        let current_line = if let Some((current_line, _, _)) = self.current_line_detail.as_mut() {
+            current_line.truncate(0);
+            current_line
+        } else {
+            &mut current_line
+        };
+
         let mut current_line_width = 0;
+        let mut current_alignment = Alignment::Left;
+        let mut horizontal_offset = self.horizontal_offset as usize;
 
         let mut lines_exhausted = true;
-        let mut horizontal_offset = self.horizontal_offset as usize;
-        let mut current_alignment = Alignment::Left;
-        if let Some((current_line, alignment)) = &mut self.input_lines.next() {
+
+        if let Some((line, alignment)) = &mut self.input_lines.next() {
             lines_exhausted = false;
             current_alignment = *alignment;
 
-            for StyledGrapheme { symbol, style } in current_line {
+            for StyledGrapheme { symbol, style } in line {
                 // Ignore characters wider that the total max width.
                 if symbol.width() as u16 > self.max_line_width {
                     continue;
@@ -289,18 +306,14 @@ where
                     }
                 };
                 current_line_width += symbol.width() as u16;
-                self.current_line.push(StyledGrapheme { symbol, style });
+                current_line.push(StyledGrapheme { symbol, style });
             }
         }
 
         if lines_exhausted {
-            None
+            self.current_line_detail = None;
         } else {
-            Some((
-                &self.current_line[..],
-                current_line_width,
-                current_alignment,
-            ))
+            self.current_line_detail = Some((std::mem::take(current_line), current_line_width, current_alignment));
         }
     }
 }
@@ -351,7 +364,7 @@ mod test {
             )
         });
 
-        let mut composer: Box<dyn LineComposer> = match which {
+        let mut composer: Box<dyn StreamingIterator<Item = LineComposerItem>> = match which {
             Composer::WordWrapper { trim } => {
                 Box::new(WordWrapper::new(styled_lines, text_area_width, trim))
             }
@@ -360,15 +373,15 @@ mod test {
         let mut lines = vec![];
         let mut widths = vec![];
         let mut alignments = vec![];
-        while let Some((styled, width, alignment)) = composer.next_line() {
+        while let Some((styled, width, alignment)) = composer.next().as_ref() {
             let line = styled
                 .iter()
                 .map(|StyledGrapheme { symbol, .. }| *symbol)
                 .collect::<String>();
-            assert!(width <= text_area_width);
+            assert!(*width <= text_area_width);
             lines.push(line);
-            widths.push(width);
-            alignments.push(alignment);
+            widths.push(*width);
+            alignments.push(*alignment);
         }
         (lines, widths, alignments)
     }

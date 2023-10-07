@@ -1,4 +1,5 @@
 use unicode_width::UnicodeWidthStr;
+use streaming_iterator::StreamingIterator;
 
 use crate::{
     buffer::Buffer,
@@ -6,7 +7,7 @@ use crate::{
     style::{Style, Styled},
     text::{StyledGrapheme, Text},
     widgets::{
-        reflow::{LineComposer, LineTruncator, WordWrapper},
+        reflow::{LineComposerItem, LineTruncator, WordWrapper},
         Block, Widget,
     },
 };
@@ -219,7 +220,7 @@ impl<'a> Paragraph<'a> {
             )
         });
 
-        let mut line_composer: Box<dyn LineComposer> = if let Some(Wrap { trim }) = self.wrap {
+        let mut line_iter: Box<dyn StreamingIterator<Item = LineComposerItem>> = if let Some(Wrap { trim }) = self.wrap {
             Box::new(WordWrapper::new(styled, text_area.width, trim))
         } else {
             Box::new(LineTruncator::new(styled, text_area.width))
@@ -227,8 +228,8 @@ impl<'a> Paragraph<'a> {
         let mut y = 0 as u16;
         let mut x = 0;
         let mut last_aligned_start_x: Option<u16> = None;
-        while let Some((line, width, alignment)) = line_composer.next_line() {
-            x = get_line_offset(width, text_area.width, alignment);
+        while let Some((line, width, alignment)) = line_iter.next().as_ref() {
+            x = get_line_offset(*width, text_area.width, *alignment);
             last_aligned_start_x = Some(x);
             for sg in line {
                 let symbol_width = sg.symbol.width();
@@ -316,7 +317,7 @@ impl<'a> Widget for Paragraph<'a> {
             )
         });
 
-        let mut line_composer: Box<dyn LineComposer> = if let Some(Wrap { trim }) = self.wrap {
+        let mut line_composer: Box<dyn StreamingIterator<Item = LineComposerItem>> = if let Some(Wrap { trim }) = self.wrap {
             Box::new(WordWrapper::new(styled, text_area.width, trim))
         } else {
             let mut line_composer = Box::new(LineTruncator::new(styled, text_area.width));
@@ -325,11 +326,11 @@ impl<'a> Widget for Paragraph<'a> {
         };
         let mut y = 0;
         while let Some((current_line, current_line_width, current_line_alignment)) =
-            line_composer.next_line()
+            line_composer.next().as_ref()
         {
             if y >= self.scroll.0 {
                 let mut x =
-                    get_line_offset(current_line_width, text_area.width, current_line_alignment);
+                    get_line_offset(*current_line_width, text_area.width, *current_line_alignment);
                 for StyledGrapheme { symbol, style } in current_line {
                     let width = symbol.width();
                     if width == 0 {
