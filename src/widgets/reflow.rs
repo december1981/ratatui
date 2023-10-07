@@ -277,7 +277,7 @@ where
 
         let mut lines_exhausted = true;
 
-        if let Some((input_line, alignment)) = &mut self.input_lines.next() {
+        if let Some((input_line, alignment)) = self.input_lines.next().as_mut() {
             lines_exhausted = false;
             current_alignment = *alignment;
 
