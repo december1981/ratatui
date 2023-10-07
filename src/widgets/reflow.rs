@@ -277,11 +277,11 @@ where
 
         let mut lines_exhausted = true;
 
-        if let Some((line, alignment)) = &mut self.input_lines.next() {
+        if let Some((input_line, alignment)) = &mut self.input_lines.next() {
             lines_exhausted = false;
             current_alignment = *alignment;
 
-            for StyledGrapheme { symbol, style } in line {
+            for StyledGrapheme { symbol, style } in input_line {
                 // Ignore characters wider that the total max width.
                 if symbol.width() as u16 > self.max_line_width {
                     continue;
