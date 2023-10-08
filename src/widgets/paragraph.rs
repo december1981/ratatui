@@ -203,6 +203,40 @@ impl<'a> Paragraph<'a> {
     }
 
     ///
+    /// Gets a line iterator suitable for analysing and rendering paragraph lines with style and wrap applied
+    ///
+    pub fn visit_composed<F: FnMut(&LineComposerItem) -> bool>(&self, text_area: Rect, mut visitor: F) {
+        if text_area.height < 1 {
+            return;
+        }
+
+        let styled = self.text.lines.iter().map(|line| {
+            (
+                line.spans
+                    .iter()
+                    .flat_map(|span| span.styled_graphemes(self.style)),
+                line.alignment.unwrap_or(self.alignment),
+            )
+        });
+
+        let mut line_composer: Box<dyn StreamingIterator<Item = LineComposerItem>> = if let Some(Wrap { trim }) = self.wrap {
+            Box::new(WordWrapper::new(styled, text_area.width, trim))
+        } else {
+            let mut line_composer = Box::new(LineTruncator::new(styled, text_area.width));
+            line_composer.set_horizontal_offset(self.scroll.1);
+            line_composer
+        };
+
+        while let Some(composed_line) =
+            line_composer.next()
+        {
+            if !visitor(composed_line) {
+                break;
+            }
+        }
+    }
+
+    ///
     /// Returns the notional cursor offset position given the text, style and wrapping,
     /// given a user cursor input offset into the text
     ///
@@ -210,25 +244,10 @@ impl<'a> Paragraph<'a> {
     pub fn cursor_offset(&self, text_area: Rect, wrap_offsets: (u16, u16), trailing_nl: u16) -> (u16, u16) {
         let (mut wrap_behind, wrap_ahead) = wrap_offsets;
 
-        let style = self.style;
-        let styled = self.text.lines.iter().map(|line| {
-            (
-                line.spans
-                    .iter()
-                    .flat_map(|span| span.styled_graphemes(style)),
-                line.alignment.unwrap_or(self.alignment),
-            )
-        });
-
-        let mut line_iter: Box<dyn StreamingIterator<Item = LineComposerItem>> = if let Some(Wrap { trim }) = self.wrap {
-            Box::new(WordWrapper::new(styled, text_area.width, trim))
-        } else {
-            Box::new(LineTruncator::new(styled, text_area.width))
-        };
         let mut y = 0 as u16;
         let mut x = 0;
         let mut last_aligned_start_x: Option<u16> = None;
-        while let Some((line, width, alignment)) = line_iter.next().as_ref() {
+        self.visit_composed(text_area, |(line, width, alignment)| {
             x = get_line_offset(*width, text_area.width, *alignment);
             last_aligned_start_x = Some(x);
             for sg in line {
@@ -236,7 +255,9 @@ impl<'a> Paragraph<'a> {
                 x += symbol_width as u16;
             }
             y += 1;
-        }
+            // keep going
+            true
+        });
 
         let base_start_x = get_line_offset(0, text_area.width, self.alignment);
         let aligned_start_x = if y > 0 {
@@ -303,35 +324,12 @@ impl<'a> Widget for Paragraph<'a> {
             None => area,
         };
 
-        if text_area.height < 1 {
-            return;
-        }
-
-        let style = self.style;
-        let styled = self.text.lines.iter().map(|line| {
-            (
-                line.spans
-                    .iter()
-                    .flat_map(|span| span.styled_graphemes(style)),
-                line.alignment.unwrap_or(self.alignment),
-            )
-        });
-
-        let mut line_composer: Box<dyn StreamingIterator<Item = LineComposerItem>> = if let Some(Wrap { trim }) = self.wrap {
-            Box::new(WordWrapper::new(styled, text_area.width, trim))
-        } else {
-            let mut line_composer = Box::new(LineTruncator::new(styled, text_area.width));
-            line_composer.set_horizontal_offset(self.scroll.1);
-            line_composer
-        };
         let mut y = 0;
-        while let Some((current_line, current_line_width, current_line_alignment)) =
-            line_composer.next().as_ref()
-        {
+        self.visit_composed(text_area, |(line, line_width, line_alignment)| {
             if y >= self.scroll.0 {
                 let mut x =
-                    get_line_offset(*current_line_width, text_area.width, *current_line_alignment);
-                for StyledGrapheme { symbol, style } in current_line {
+                    get_line_offset(*line_width, text_area.width, *line_alignment);
+                for StyledGrapheme { symbol, style } in line {
                     let width = symbol.width();
                     if width == 0 {
                         continue;
@@ -350,9 +348,12 @@ impl<'a> Widget for Paragraph<'a> {
             }
             y += 1;
             if y >= text_area.height + self.scroll.0 {
-                break;
+                // end visit if this is the case
+                false
+            } else {
+                true
             }
-        }
+        });
     }
 }
 
