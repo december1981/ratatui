@@ -203,7 +203,8 @@ impl<'a> Paragraph<'a> {
     }
 
     ///
-    /// Gets a line iterator suitable for analysing and rendering paragraph lines with style and wrap applied
+    /// Visits the styled composed lines inside a text area for rendering or other analysis/processing.
+    /// The visitor function indicates it wants the visitor iteration to terminate if it returns false.
     ///
     pub fn visit_composed<F: FnMut(&LineComposerItem) -> bool>(&self, text_area: Rect, mut visitor: F) {
         if text_area.height < 1 {
