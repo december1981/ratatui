@@ -12,14 +12,6 @@ use crate::{
     },
 };
 
-fn get_line_offset(line_width: u16, text_area_width: u16, alignment: Alignment) -> u16 {
-    match alignment {
-        Alignment::Center => (text_area_width / 2).saturating_sub(line_width / 2),
-        Alignment::Right => text_area_width.saturating_sub(line_width),
-        Alignment::Left => 0,
-    }
-}
-
 /// A widget to display some text.
 ///
 /// # Example
@@ -203,10 +195,21 @@ impl<'a> Paragraph<'a> {
     }
 
     ///
+    /// Helper method
+    ///
+    pub fn get_line_offset(line_width: u16, text_area_width: u16, alignment: Alignment) -> u16 {
+        match alignment {
+            Alignment::Center => (text_area_width / 2).saturating_sub(line_width / 2),
+            Alignment::Right => text_area_width.saturating_sub(line_width),
+            Alignment::Left => 0,
+        }
+    }
+
+    ///
     /// Visits the styled composed lines inside a text area for rendering or other analysis/processing.
     /// The visitor function indicates it wants the visitor iteration to terminate if it returns false.
     ///
-    pub fn visit_composed<F: FnMut(&LineComposerItem) -> bool>(&self, text_area: Rect, mut visitor: F) {
+    pub fn visit_composed<F: FnMut(&LineComposerItem) -> bool>(&self, text_area: &Rect, mut visitor: F) {
         if text_area.height < 1 {
             return;
         }
@@ -236,81 +239,6 @@ impl<'a> Paragraph<'a> {
             }
         }
     }
-
-    ///
-    /// Returns the notional cursor offset position given the text, style and wrapping,
-    /// given a user cursor input offset into the text
-    ///
-    ///
-    pub fn cursor_offset(&self, text_area: Rect, wrap_offsets: (u16, u16), trailing_nl: u16) -> (u16, u16) {
-        let (mut wrap_behind, wrap_ahead) = wrap_offsets;
-
-        let mut y = 0 as u16;
-        let mut x = 0;
-        let mut last_aligned_start_x: Option<u16> = None;
-        self.visit_composed(text_area, |(line, width, alignment)| {
-            x = get_line_offset(*width, text_area.width, *alignment);
-            last_aligned_start_x = Some(x);
-            for sg in line {
-                let symbol_width = sg.symbol.width();
-                x += symbol_width as u16;
-            }
-            y += 1;
-            // keep going
-            true
-        });
-
-        let base_start_x = get_line_offset(0, text_area.width, self.alignment);
-        let aligned_start_x = if y > 0 {
-            if x == text_area.width {
-                // go back to baseline, but increase y (by not decrementing it.)
-                x = base_start_x;
-                x
-            } else {
-                y -= 1;
-                last_aligned_start_x.unwrap()
-            }
-        } else {
-            x = base_start_x;
-            x
-        };
-
-        if wrap_behind > 0 {
-            let mut consume = x.saturating_sub(aligned_start_x);
-            loop {
-                if wrap_behind > consume {
-                    wrap_behind -= consume;
-                    x = text_area.width;
-                    consume = text_area.width;
-                    y = y.saturating_sub(1);
-                } else {
-                    x -= wrap_behind;
-                    break;
-                }
-            }
-        } else {
-            if trailing_nl > 0 {
-                x = base_start_x;
-                y = y.saturating_add(trailing_nl);
-            }
-            if wrap_ahead > 0 {
-                x = x.saturating_add(wrap_ahead);
-                if x >= text_area.width {
-                    while x >= text_area.width {
-                        x -= text_area.width;
-                        // account for new line as pseudo space
-                        x = x.saturating_sub(1);
-                        // next line for y
-                        y = y.saturating_add(1);
-                    }
-                    // apply alignment to space forward wrapped x.
-                    x += get_line_offset(x, text_area.width, self.alignment);
-                }
-            }
-        }
-
-        (x, y)
-    }
 }
 
 impl<'a> Widget for Paragraph<'a> {
@@ -326,10 +254,9 @@ impl<'a> Widget for Paragraph<'a> {
         };
 
         let mut y = 0;
-        self.visit_composed(text_area, |(line, line_width, line_alignment)| {
+        self.visit_composed(&text_area, |(line, line_width, line_alignment)| {
             if y >= self.scroll.0 {
-                let mut x =
-                    get_line_offset(*line_width, text_area.width, *line_alignment);
+                let mut x = Self::get_line_offset(*line_width, text_area.width, *line_alignment);
                 for StyledGrapheme { symbol, style } in line {
                     let width = symbol.width();
                     if width == 0 {
@@ -349,7 +276,7 @@ impl<'a> Widget for Paragraph<'a> {
             }
             y += 1;
             if y >= text_area.height + self.scroll.0 {
-                // end visit if this is the case
+                // early out of visitor iteration
                 false
             } else {
                 true
