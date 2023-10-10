@@ -83,7 +83,7 @@ where
             // When no more preprocessed wrapped lines
             if current_line.is_none() {
                 // Try to calculate next wrapped lines based on current whole line
-                if let Some((line_symbols, line_alignment)) = self.input_lines.next().as_mut() {
+                if let Some((line_symbols, line_alignment)) = &mut self.input_lines.next() {
                     // Save the whole line's alignment
                     self.current_alignment = *line_alignment;
                     let mut wrapped_lines = vec![]; // Saves the wrapped lines
@@ -200,7 +200,7 @@ where
                 }
             }
         }
-        if let Some(current_line) = current_line.as_mut() {
+        if let Some(current_line) = &mut current_line {
             self.current_line_detail = Some((std::mem::take(current_line), line_width, self.current_alignment));
         } else {
             self.current_line_detail = None;
@@ -264,7 +264,7 @@ where
 
         let mut current_line = vec![];
 
-        let current_line = if let Some((current_line, _, _)) = self.current_line_detail.as_mut() {
+        let current_line = if let Some((current_line, _, _)) = &mut self.current_line_detail {
             current_line.truncate(0);
             current_line
         } else {
@@ -277,7 +277,7 @@ where
 
         let mut lines_exhausted = true;
 
-        if let Some((input_line, alignment)) = self.input_lines.next().as_mut() {
+        if let Some((input_line, alignment)) = &mut self.input_lines.next() {
             lines_exhausted = false;
             current_alignment = *alignment;
 
@@ -373,7 +373,7 @@ mod test {
         let mut lines = vec![];
         let mut widths = vec![];
         let mut alignments = vec![];
-        while let Some((styled, width, alignment)) = composer.next().as_ref() {
+        while let Some((styled, width, alignment)) = &composer.next() {
             let line = styled
                 .iter()
                 .map(|StyledGrapheme { symbol, .. }| *symbol)
