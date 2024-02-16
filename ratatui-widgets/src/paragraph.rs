@@ -305,6 +305,17 @@ impl<'a> Paragraph<'a> {
         self.alignment(Alignment::Right)
     }
 
+    /// Helper function for getting line offset for a paragraph given alignment
+    ///
+    ///
+    pub const fn get_line_offset(line_width: u16, text_area_width: u16, alignment: Alignment) -> u16 {
+        match alignment {
+            Alignment::Center => (text_area_width / 2).saturating_sub(line_width / 2),
+            Alignment::Right => text_area_width.saturating_sub(line_width),
+            Alignment::Left => 0,
+        }
+    }
+
     /// Calculates the number of lines needed to fully render.
     ///
     /// Given a max line width, this method calculates the number of lines that a paragraph will
@@ -416,12 +427,15 @@ impl Widget for &Paragraph<'_> {
 }
 
 impl Paragraph<'_> {
-    fn render_paragraph(&self, text_area: Rect, buf: &mut Buffer) {
-        if text_area.is_empty() {
-            return;
+    /// Visits the styled wrapped text lines inside a text area for rendering or other analysis/processing.
+    /// The visitor function indicates it wants the visitor iteration to terminate if it returns false.
+    /// This method itself returns the number of lines skipped due to scroll.y
+    ///
+    pub fn visit_wrapped_text<F: FnMut(&WrappedLine) -> bool>(&self, width: u16, visitor: F) -> usize {
+        if width == 0 {
+            return 0;
         }
 
-        buf.set_style(text_area, self.style);
         let styled = self.text.iter().map(|line| {
             let graphemes = line.styled_graphemes(self.text.style);
             let alignment = line.alignment.unwrap_or(self.alignment);
@@ -429,37 +443,66 @@ impl Paragraph<'_> {
         });
 
         if let Some(Wrap { trim }) = self.wrap {
-            let mut line_composer = WordWrapper::new(styled, text_area.width, trim);
+            let mut line_composer = WordWrapper::new(styled, width, trim);
             // compute the lines iteratively until we reach the desired scroll offset.
+            let mut skipped = 0;
             for _ in 0..self.scroll.y {
+                skipped += 1;
                 if line_composer.next_line().is_none() {
-                    return;
+                    return skipped;
                 }
             }
-            render_lines(line_composer, text_area, buf);
+            Self::visit_with_composer(line_composer, visitor);
+            skipped
         } else {
             // avoid unnecessary work by skipping directly to the relevant line before rendering
-            let lines = styled.skip(self.scroll.y as usize);
-            let mut line_composer = LineTruncator::new(lines, text_area.width);
+            let scroll_y = self.scroll.y as usize;
+            let lines = styled.skip(scroll_y);
+            let mut line_composer = LineTruncator::new(lines, width);
             line_composer.set_horizontal_offset(self.scroll.x);
-            render_lines(line_composer, text_area, buf);
+            Self::visit_with_composer(line_composer, visitor);
+            // min: cannot skip more than the number of lines, whatever the y scroll
+            scroll_y.min(self.text.lines.len())
         }
     }
-}
 
-fn render_lines<'a, C: LineComposer<'a>>(mut composer: C, area: Rect, buf: &mut Buffer) {
-    let mut y = 0;
-    while let Some(ref wrapped) = composer.next_line() {
-        render_line(wrapped, area, buf, y);
-        y += 1;
-        if y >= area.height {
-            break;
+    /// Works out the wrapped height of a paragraph from the width of the region in which it wraps
+    ///
+    pub fn wrapped_height(&self, width: u16) -> u16 {
+        let mut height = 0;
+        let skipped = self.visit_wrapped_text(width, |_| {
+            height += 1;
+            true
+        }) as u16;
+        height + skipped
+    }
+
+    fn visit_with_composer<'a, C: LineComposer<'a>, F: FnMut(&WrappedLine) -> bool>(
+        mut composer: C,
+        mut visitor: F,
+    ) {
+        while let Some(line) = composer.next_line() {
+            if !visitor(&line) {
+                break;
+            }
         }
+    }
+
+    fn render_paragraph(&self, area: Rect, buf: &mut Buffer) {
+        if area.is_empty() {
+            return;
+        }
+        let mut y = 0;
+        self.visit_wrapped_text(area.width, |wrapped| {
+            render_line(wrapped, area, buf, y);
+            y += 1;
+            y < area.height
+        });
     }
 }
 
 fn render_line(wrapped: &WrappedLine<'_, '_>, area: Rect, buf: &mut Buffer, y: u16) {
-    let mut x = get_line_offset(wrapped.width, area.width, wrapped.alignment);
+    let mut x = Paragraph::get_line_offset(wrapped.width, area.width, wrapped.alignment);
     for StyledGrapheme { symbol, style } in wrapped.graphemes {
         let width = symbol.cell_width();
         if width == 0 {
@@ -470,14 +513,6 @@ fn render_line(wrapped: &WrappedLine<'_, '_>, area: Rect, buf: &mut Buffer, y: u
         let position = Position::new(area.left() + x, area.top() + y);
         buf[position].set_symbol(symbol).set_style(*style);
         x += width;
-    }
-}
-
-const fn get_line_offset(line_width: u16, text_area_width: u16, alignment: Alignment) -> u16 {
-    match alignment {
-        Alignment::Center => (text_area_width / 2).saturating_sub(line_width / 2),
-        Alignment::Right => text_area_width.saturating_sub(line_width),
-        Alignment::Left => 0,
     }
 }
 
