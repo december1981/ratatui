@@ -393,6 +393,14 @@ impl Paragraph<'_> {
             y < area.height + self.scroll.0
         });
     }
+
+    ///
+    /// Re-styles the text of the paragraph with the passed in style
+    ///
+    pub fn restyle_text(&self, style: Style) -> Self {
+        Self::new(self.text.iter().map(|l| Line::default().spans(
+            l.iter().map(|s| s.clone().style(style)))).collect::<Vec<Line>>())
+    }
 }
 
 impl<'a> Styled for Paragraph<'a> {
