@@ -359,6 +359,17 @@ impl Paragraph<'_> {
         }
     }
 
+    /// Works out the wrapped height of a paragraph from the width of the region in which it wraps
+    ///
+    pub fn wrapped_height(&self, width: u16) -> u16 {
+        let mut height = 0;
+        self.visit_wrapped_text(width, |_| {
+            height += 1;
+            true
+        });
+        height
+    }
+
     fn visit_with_composer<'a, C: LineComposer<'a>, F: FnMut(WrappedLine) -> bool>(
         mut composer: C,
         mut visitor: F,
