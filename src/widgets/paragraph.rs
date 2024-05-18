@@ -338,8 +338,8 @@ impl Paragraph<'_> {
     /// Visits the styled wrapped text lines inside a text area for rendering or other analysis/processing.
     /// The visitor function indicates it wants the visitor iteration to terminate if it returns false.
     ///
-    pub fn visit_wrapped_text<F: FnMut(WrappedLine) -> bool>(&self, text_area: &Rect, visitor: F) {
-        if text_area.is_empty() {
+    pub fn visit_wrapped_text<F: FnMut(WrappedLine) -> bool>(&self, width: u16, visitor: F) {
+        if width == 0 {
             return;
         }
 
@@ -350,10 +350,10 @@ impl Paragraph<'_> {
         });
 
         if let Some(Wrap { trim }) = self.wrap {
-            let line_composer = WordWrapper::new(styled, text_area.width, trim);
+            let line_composer = WordWrapper::new(styled, width, trim);
             Self::visit_with_composer(line_composer, visitor);
         } else {
-            let mut line_composer = LineTruncator::new(styled, text_area.width);
+            let mut line_composer = LineTruncator::new(styled, width);
             line_composer.set_horizontal_offset(self.scroll.1);
             Self::visit_with_composer(line_composer, visitor);
         }
@@ -371,8 +371,11 @@ impl Paragraph<'_> {
     }
 
     fn render_paragraph(&self, area: Rect, buf: &mut Buffer) {
+        if area.height == 0 {
+            return;
+        }
         let mut y = 0;
-        self.visit_wrapped_text(&area, |wrapped| {
+        self.visit_wrapped_text(area.width, |wrapped| {
             if y >= self.scroll.0 {
                 let mut x = Self::get_line_offset(wrapped.width, area.width, wrapped.alignment);
                 for StyledGrapheme { symbol, style } in wrapped.line {
