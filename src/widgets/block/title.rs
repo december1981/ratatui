@@ -44,6 +44,7 @@ use crate::{layout::Alignment, text::Line};
 ///     .alignment(Alignment::Right);
 /// ```
 #[derive(Debug, Default, Clone, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Title<'a> {
     /// Title content
     pub content: Line<'a>,
@@ -75,6 +76,7 @@ pub struct Title<'a> {
 /// Block::new().title(Title::from("title").position(Position::Bottom));
 /// ```
 #[derive(Debug, Default, Display, EnumString, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Position {
     /// Position the title at the top of the block.
     ///

@@ -236,21 +236,24 @@ pub mod line {
 }
 
 pub mod border {
+    use std::borrow::Cow;
+
     use super::line;
 
-    #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
-    pub struct Set {
-        pub top_left: &'static str,
-        pub top_right: &'static str,
-        pub bottom_left: &'static str,
-        pub bottom_right: &'static str,
-        pub vertical_left: &'static str,
-        pub vertical_right: &'static str,
-        pub horizontal_top: &'static str,
-        pub horizontal_bottom: &'static str,
+    #[derive(Debug, Clone, Eq, PartialEq, Hash)]
+    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+    pub struct Set<'a> {
+        pub top_left: Cow<'a, str>,
+        pub top_right: Cow<'a, str>,
+        pub bottom_left: Cow<'a, str>,
+        pub bottom_right: Cow<'a, str>,
+        pub vertical_left: Cow<'a, str>,
+        pub vertical_right: Cow<'a, str>,
+        pub horizontal_top: Cow<'a, str>,
+        pub horizontal_bottom: Cow<'a, str>,
     }
 
-    impl Default for Set {
+    impl<'a> Default for Set<'a> {
         fn default() -> Self {
             PLAIN
         }
@@ -264,14 +267,14 @@ pub mod border {
     /// │xxxxx│
     /// └─────┘
     pub const PLAIN: Set = Set {
-        top_left: line::NORMAL.top_left,
-        top_right: line::NORMAL.top_right,
-        bottom_left: line::NORMAL.bottom_left,
-        bottom_right: line::NORMAL.bottom_right,
-        vertical_left: line::NORMAL.vertical,
-        vertical_right: line::NORMAL.vertical,
-        horizontal_top: line::NORMAL.horizontal,
-        horizontal_bottom: line::NORMAL.horizontal,
+        top_left: Cow::Borrowed(line::NORMAL.top_left),
+        top_right: Cow::Borrowed(line::NORMAL.top_right),
+        bottom_left: Cow::Borrowed(line::NORMAL.bottom_left),
+        bottom_right: Cow::Borrowed(line::NORMAL.bottom_right),
+        vertical_left: Cow::Borrowed(line::NORMAL.vertical),
+        vertical_right: Cow::Borrowed(line::NORMAL.vertical),
+        horizontal_top: Cow::Borrowed(line::NORMAL.horizontal),
+        horizontal_bottom: Cow::Borrowed(line::NORMAL.horizontal),
     };
 
     /// Border Set with a single line width and rounded corners
@@ -282,14 +285,14 @@ pub mod border {
     /// │xxxxx│
     /// ╰─────╯
     pub const ROUNDED: Set = Set {
-        top_left: line::ROUNDED.top_left,
-        top_right: line::ROUNDED.top_right,
-        bottom_left: line::ROUNDED.bottom_left,
-        bottom_right: line::ROUNDED.bottom_right,
-        vertical_left: line::ROUNDED.vertical,
-        vertical_right: line::ROUNDED.vertical,
-        horizontal_top: line::ROUNDED.horizontal,
-        horizontal_bottom: line::ROUNDED.horizontal,
+        top_left: Cow::Borrowed(line::ROUNDED.top_left),
+        top_right: Cow::Borrowed(line::ROUNDED.top_right),
+        bottom_left: Cow::Borrowed(line::ROUNDED.bottom_left),
+        bottom_right: Cow::Borrowed(line::ROUNDED.bottom_right),
+        vertical_left: Cow::Borrowed(line::ROUNDED.vertical),
+        vertical_right: Cow::Borrowed(line::ROUNDED.vertical),
+        horizontal_top: Cow::Borrowed(line::ROUNDED.horizontal),
+        horizontal_bottom: Cow::Borrowed(line::ROUNDED.horizontal),
     };
 
     /// Border Set with a double line width
@@ -300,14 +303,14 @@ pub mod border {
     /// ║xxxxx║
     /// ╚═════╝
     pub const DOUBLE: Set = Set {
-        top_left: line::DOUBLE.top_left,
-        top_right: line::DOUBLE.top_right,
-        bottom_left: line::DOUBLE.bottom_left,
-        bottom_right: line::DOUBLE.bottom_right,
-        vertical_left: line::DOUBLE.vertical,
-        vertical_right: line::DOUBLE.vertical,
-        horizontal_top: line::DOUBLE.horizontal,
-        horizontal_bottom: line::DOUBLE.horizontal,
+        top_left: Cow::Borrowed(line::DOUBLE.top_left),
+        top_right: Cow::Borrowed(line::DOUBLE.top_right),
+        bottom_left: Cow::Borrowed(line::DOUBLE.bottom_left),
+        bottom_right: Cow::Borrowed(line::DOUBLE.bottom_right),
+        vertical_left: Cow::Borrowed(line::DOUBLE.vertical),
+        vertical_right: Cow::Borrowed(line::DOUBLE.vertical),
+        horizontal_top: Cow::Borrowed(line::DOUBLE.horizontal),
+        horizontal_bottom: Cow::Borrowed(line::DOUBLE.horizontal),
     };
 
     /// Border Set with a thick line width
@@ -318,14 +321,14 @@ pub mod border {
     /// ┃xxxxx┃
     /// ┗━━━━━┛
     pub const THICK: Set = Set {
-        top_left: line::THICK.top_left,
-        top_right: line::THICK.top_right,
-        bottom_left: line::THICK.bottom_left,
-        bottom_right: line::THICK.bottom_right,
-        vertical_left: line::THICK.vertical,
-        vertical_right: line::THICK.vertical,
-        horizontal_top: line::THICK.horizontal,
-        horizontal_bottom: line::THICK.horizontal,
+        top_left: Cow::Borrowed(line::THICK.top_left),
+        top_right: Cow::Borrowed(line::THICK.top_right),
+        bottom_left: Cow::Borrowed(line::THICK.bottom_left),
+        bottom_right: Cow::Borrowed(line::THICK.bottom_right),
+        vertical_left: Cow::Borrowed(line::THICK.vertical),
+        vertical_right: Cow::Borrowed(line::THICK.vertical),
+        horizontal_top: Cow::Borrowed(line::THICK.horizontal),
+        horizontal_bottom: Cow::Borrowed(line::THICK.horizontal),
     };
 
     pub const QUADRANT_TOP_LEFT: &str = "▘";
@@ -353,14 +356,14 @@ pub mod border {
     /// ▙▄▄▄▄▄▟
     /// ```
     pub const QUADRANT_OUTSIDE: Set = Set {
-        top_left: QUADRANT_TOP_LEFT_TOP_RIGHT_BOTTOM_LEFT,
-        top_right: QUADRANT_TOP_LEFT_TOP_RIGHT_BOTTOM_RIGHT,
-        bottom_left: QUADRANT_TOP_LEFT_BOTTOM_LEFT_BOTTOM_RIGHT,
-        bottom_right: QUADRANT_TOP_RIGHT_BOTTOM_LEFT_BOTTOM_RIGHT,
-        vertical_left: QUADRANT_LEFT_HALF,
-        vertical_right: QUADRANT_RIGHT_HALF,
-        horizontal_top: QUADRANT_TOP_HALF,
-        horizontal_bottom: QUADRANT_BOTTOM_HALF,
+        top_left: Cow::Borrowed(QUADRANT_TOP_LEFT_TOP_RIGHT_BOTTOM_LEFT),
+        top_right: Cow::Borrowed(QUADRANT_TOP_LEFT_TOP_RIGHT_BOTTOM_RIGHT),
+        bottom_left: Cow::Borrowed(QUADRANT_TOP_LEFT_BOTTOM_LEFT_BOTTOM_RIGHT),
+        bottom_right: Cow::Borrowed(QUADRANT_TOP_RIGHT_BOTTOM_LEFT_BOTTOM_RIGHT),
+        vertical_left: Cow::Borrowed(QUADRANT_LEFT_HALF),
+        vertical_right: Cow::Borrowed(QUADRANT_RIGHT_HALF),
+        horizontal_top: Cow::Borrowed(QUADRANT_TOP_HALF),
+        horizontal_bottom: Cow::Borrowed(QUADRANT_BOTTOM_HALF),
     };
 
     /// Quadrant used for setting a border inside a block by one half cell "pixel".
@@ -372,14 +375,14 @@ pub mod border {
     /// ▝▀▀▀▀▀▘
     /// ```
     pub const QUADRANT_INSIDE: Set = Set {
-        top_right: QUADRANT_BOTTOM_LEFT,
-        top_left: QUADRANT_BOTTOM_RIGHT,
-        bottom_right: QUADRANT_TOP_LEFT,
-        bottom_left: QUADRANT_TOP_RIGHT,
-        vertical_left: QUADRANT_RIGHT_HALF,
-        vertical_right: QUADRANT_LEFT_HALF,
-        horizontal_top: QUADRANT_BOTTOM_HALF,
-        horizontal_bottom: QUADRANT_TOP_HALF,
+        top_right: Cow::Borrowed(QUADRANT_BOTTOM_LEFT),
+        top_left: Cow::Borrowed(QUADRANT_BOTTOM_RIGHT),
+        bottom_right: Cow::Borrowed(QUADRANT_TOP_LEFT),
+        bottom_left: Cow::Borrowed(QUADRANT_TOP_RIGHT),
+        vertical_left: Cow::Borrowed(QUADRANT_RIGHT_HALF),
+        vertical_right: Cow::Borrowed(QUADRANT_LEFT_HALF),
+        horizontal_top: Cow::Borrowed(QUADRANT_BOTTOM_HALF),
+        horizontal_bottom: Cow::Borrowed(QUADRANT_TOP_HALF),
     };
 
     pub const ONE_EIGHTH_TOP_EIGHT: &str = "▔";
@@ -397,14 +400,14 @@ pub mod border {
     /// ```
     #[allow(clippy::doc_markdown)]
     pub const ONE_EIGHTH_WIDE: Set = Set {
-        top_right: ONE_EIGHTH_BOTTOM_EIGHT,
-        top_left: ONE_EIGHTH_BOTTOM_EIGHT,
-        bottom_right: ONE_EIGHTH_TOP_EIGHT,
-        bottom_left: ONE_EIGHTH_TOP_EIGHT,
-        vertical_left: ONE_EIGHTH_LEFT_EIGHT,
-        vertical_right: ONE_EIGHTH_RIGHT_EIGHT,
-        horizontal_top: ONE_EIGHTH_BOTTOM_EIGHT,
-        horizontal_bottom: ONE_EIGHTH_TOP_EIGHT,
+        top_right: Cow::Borrowed(ONE_EIGHTH_BOTTOM_EIGHT),
+        top_left: Cow::Borrowed(ONE_EIGHTH_BOTTOM_EIGHT),
+        bottom_right: Cow::Borrowed(ONE_EIGHTH_TOP_EIGHT),
+        bottom_left: Cow::Borrowed(ONE_EIGHTH_TOP_EIGHT),
+        vertical_left: Cow::Borrowed(ONE_EIGHTH_LEFT_EIGHT),
+        vertical_right: Cow::Borrowed(ONE_EIGHTH_RIGHT_EIGHT),
+        horizontal_top: Cow::Borrowed(ONE_EIGHTH_BOTTOM_EIGHT),
+        horizontal_bottom: Cow::Borrowed(ONE_EIGHTH_TOP_EIGHT),
     };
 
     /// Tall border set based on McGugan box technique
@@ -417,14 +420,14 @@ pub mod border {
     /// ```
     #[allow(clippy::doc_markdown)]
     pub const ONE_EIGHTH_TALL: Set = Set {
-        top_right: ONE_EIGHTH_LEFT_EIGHT,
-        top_left: ONE_EIGHTH_RIGHT_EIGHT,
-        bottom_right: ONE_EIGHTH_LEFT_EIGHT,
-        bottom_left: ONE_EIGHTH_RIGHT_EIGHT,
-        vertical_left: ONE_EIGHTH_RIGHT_EIGHT,
-        vertical_right: ONE_EIGHTH_LEFT_EIGHT,
-        horizontal_top: ONE_EIGHTH_TOP_EIGHT,
-        horizontal_bottom: ONE_EIGHTH_BOTTOM_EIGHT,
+        top_right: Cow::Borrowed(ONE_EIGHTH_LEFT_EIGHT),
+        top_left: Cow::Borrowed(ONE_EIGHTH_RIGHT_EIGHT),
+        bottom_right: Cow::Borrowed(ONE_EIGHTH_LEFT_EIGHT),
+        bottom_left: Cow::Borrowed(ONE_EIGHTH_RIGHT_EIGHT),
+        vertical_left: Cow::Borrowed(ONE_EIGHTH_RIGHT_EIGHT),
+        vertical_right: Cow::Borrowed(ONE_EIGHTH_LEFT_EIGHT),
+        horizontal_top: Cow::Borrowed(ONE_EIGHTH_TOP_EIGHT),
+        horizontal_bottom: Cow::Borrowed(ONE_EIGHTH_BOTTOM_EIGHT),
     };
 
     /// Wide proportional (visually equal width and height) border with using set of quadrants.
@@ -439,14 +442,14 @@ pub mod border {
     /// ▀▀▀▀
     /// ```
     pub const PROPORTIONAL_WIDE: Set = Set {
-        top_right: QUADRANT_BOTTOM_HALF,
-        top_left: QUADRANT_BOTTOM_HALF,
-        bottom_right: QUADRANT_TOP_HALF,
-        bottom_left: QUADRANT_TOP_HALF,
-        vertical_left: QUADRANT_BLOCK,
-        vertical_right: QUADRANT_BLOCK,
-        horizontal_top: QUADRANT_BOTTOM_HALF,
-        horizontal_bottom: QUADRANT_TOP_HALF,
+        top_right: Cow::Borrowed(QUADRANT_BOTTOM_HALF),
+        top_left: Cow::Borrowed(QUADRANT_BOTTOM_HALF),
+        bottom_right: Cow::Borrowed(QUADRANT_TOP_HALF),
+        bottom_left: Cow::Borrowed(QUADRANT_TOP_HALF),
+        vertical_left: Cow::Borrowed(QUADRANT_BLOCK),
+        vertical_right: Cow::Borrowed(QUADRANT_BLOCK),
+        horizontal_top: Cow::Borrowed(QUADRANT_BOTTOM_HALF),
+        horizontal_bottom: Cow::Borrowed(QUADRANT_TOP_HALF),
     };
 
     /// Tall proportional (visually equal width and height) border with using set of quadrants.
@@ -461,14 +464,14 @@ pub mod border {
     /// ▕█▄▄█
     /// ```
     pub const PROPORTIONAL_TALL: Set = Set {
-        top_right: QUADRANT_BLOCK,
-        top_left: QUADRANT_BLOCK,
-        bottom_right: QUADRANT_BLOCK,
-        bottom_left: QUADRANT_BLOCK,
-        vertical_left: QUADRANT_BLOCK,
-        vertical_right: QUADRANT_BLOCK,
-        horizontal_top: QUADRANT_TOP_HALF,
-        horizontal_bottom: QUADRANT_BOTTOM_HALF,
+        top_right: Cow::Borrowed(QUADRANT_BLOCK),
+        top_left: Cow::Borrowed(QUADRANT_BLOCK),
+        bottom_right: Cow::Borrowed(QUADRANT_BLOCK),
+        bottom_left: Cow::Borrowed(QUADRANT_BLOCK),
+        vertical_left: Cow::Borrowed(QUADRANT_BLOCK),
+        vertical_right: Cow::Borrowed(QUADRANT_BLOCK),
+        horizontal_top: Cow::Borrowed(QUADRANT_TOP_HALF),
+        horizontal_bottom: Cow::Borrowed(QUADRANT_BOTTOM_HALF),
     };
 }
 

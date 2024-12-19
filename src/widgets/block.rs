@@ -61,6 +61,7 @@ pub use title::{Position, Title};
 ///     .title(Title::from("Title 2").position(Position::Bottom));
 /// ```
 #[derive(Debug, Default, Clone, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Block<'a> {
     /// List of titles
     titles: Vec<Title<'a>>,
@@ -76,12 +77,13 @@ pub struct Block<'a> {
     border_style: Style,
     /// The symbols used to render the border. The default is plain lines but one can choose to
     /// have rounded or doubled lines instead or a custom set of symbols
-    border_set: border::Set,
+    border_set: border::Set<'a>,
     /// Widget style
     style: Style,
     /// Block padding
     padding: Padding,
 }
+
 
 /// The type of border of a [`Block`].
 ///
@@ -447,7 +449,7 @@ impl<'a> Block<'a> {
     /// // ╰─────╯
     /// ```
     #[must_use = "method moves the value of self and returns the modified value"]
-    pub const fn border_type(mut self, border_type: BorderType) -> Self {
+    pub fn border_type(mut self, border_type: BorderType) -> Self {
         self.border_set = border_type.to_border_set();
         self
     }
@@ -466,7 +468,7 @@ impl<'a> Block<'a> {
     /// // ║     ║
     /// // ╚═════╝
     #[must_use = "method moves the value of self and returns the modified value"]
-    pub const fn border_set(mut self, border_set: border::Set) -> Self {
+    pub fn border_set(mut self, border_set: border::Set<'a>) -> Self {
         self.border_set = border_set;
         self
     }
@@ -569,9 +571,9 @@ impl<'a> Block<'a> {
     }
 }
 
-impl BorderType {
+impl<'a> BorderType {
     /// Convert this `BorderType` into the corresponding [`Set`](border::Set) of border symbols.
-    pub const fn border_symbols(border_type: Self) -> border::Set {
+    pub const fn border_symbols(border_type: Self) -> border::Set<'a> {
         match border_type {
             Self::Plain => border::PLAIN,
             Self::Rounded => border::ROUNDED,
@@ -583,7 +585,7 @@ impl BorderType {
     }
 
     /// Convert this `BorderType` into the corresponding [`Set`](border::Set) of border symbols.
-    pub const fn to_border_set(self) -> border::Set {
+    pub const fn to_border_set(self) -> border::Set<'a> {
         Self::border_symbols(self)
     }
 }
@@ -635,7 +637,7 @@ impl Block<'_> {
         if self.borders.contains(Borders::LEFT) {
             for y in area.top()..area.bottom() {
                 buf.get_mut(area.left(), y)
-                    .set_symbol(self.border_set.vertical_left)
+                    .set_symbol(&self.border_set.vertical_left)
                     .set_style(self.border_style);
             }
         }
@@ -645,7 +647,7 @@ impl Block<'_> {
         if self.borders.contains(Borders::TOP) {
             for x in area.left()..area.right() {
                 buf.get_mut(x, area.top())
-                    .set_symbol(self.border_set.horizontal_top)
+                    .set_symbol(&self.border_set.horizontal_top)
                     .set_style(self.border_style);
             }
         }
@@ -656,7 +658,7 @@ impl Block<'_> {
             let x = area.right() - 1;
             for y in area.top()..area.bottom() {
                 buf.get_mut(x, y)
-                    .set_symbol(self.border_set.vertical_right)
+                    .set_symbol(&self.border_set.vertical_right)
                     .set_style(self.border_style);
             }
         }
@@ -667,7 +669,7 @@ impl Block<'_> {
             let y = area.bottom() - 1;
             for x in area.left()..area.right() {
                 buf.get_mut(x, y)
-                    .set_symbol(self.border_set.horizontal_bottom)
+                    .set_symbol(&self.border_set.horizontal_bottom)
                     .set_style(self.border_style);
             }
         }
@@ -676,7 +678,7 @@ impl Block<'_> {
     fn render_bottom_right_corner(&self, buf: &mut Buffer, area: Rect) {
         if self.borders.contains(Borders::RIGHT | Borders::BOTTOM) {
             buf.get_mut(area.right() - 1, area.bottom() - 1)
-                .set_symbol(self.border_set.bottom_right)
+                .set_symbol(&self.border_set.bottom_right)
                 .set_style(self.border_style);
         }
     }
@@ -684,7 +686,7 @@ impl Block<'_> {
     fn render_top_right_corner(&self, buf: &mut Buffer, area: Rect) {
         if self.borders.contains(Borders::RIGHT | Borders::TOP) {
             buf.get_mut(area.right() - 1, area.top())
-                .set_symbol(self.border_set.top_right)
+                .set_symbol(&self.border_set.top_right)
                 .set_style(self.border_style);
         }
     }
@@ -692,7 +694,7 @@ impl Block<'_> {
     fn render_bottom_left_corner(&self, buf: &mut Buffer, area: Rect) {
         if self.borders.contains(Borders::LEFT | Borders::BOTTOM) {
             buf.get_mut(area.left(), area.bottom() - 1)
-                .set_symbol(self.border_set.bottom_left)
+                .set_symbol(&self.border_set.bottom_left)
                 .set_style(self.border_style);
         }
     }
@@ -700,7 +702,7 @@ impl Block<'_> {
     fn render_top_left_corner(&self, buf: &mut Buffer, area: Rect) {
         if self.borders.contains(Borders::LEFT | Borders::TOP) {
             buf.get_mut(area.left(), area.top())
-                .set_symbol(self.border_set.top_left)
+                .set_symbol(&self.border_set.top_left)
                 .set_style(self.border_style);
         }
     }
@@ -1503,14 +1505,14 @@ mod tests {
         Block::default()
             .borders(Borders::ALL)
             .border_set(border::Set {
-                top_left: "1",
-                top_right: "2",
-                bottom_left: "3",
-                bottom_right: "4",
-                vertical_left: "L",
-                vertical_right: "R",
-                horizontal_top: "T",
-                horizontal_bottom: "B",
+                top_left: "1".into(),
+                top_right: "2".into(),
+                bottom_left: "3".into(),
+                bottom_right: "4".into(),
+                vertical_left: "L".into(),
+                vertical_right: "R".into(),
+                horizontal_top: "T".into(),
+                horizontal_bottom: "B".into(),
             })
             .render(buffer.area, &mut buffer);
         assert_buffer_eq!(

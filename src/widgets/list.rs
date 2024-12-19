@@ -215,6 +215,7 @@ impl ListState {
 ///
 /// [`Stylize`]: crate::style::Stylize
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize), derive(serde::Deserialize))]
 pub struct ListItem<'a> {
     content: Text<'a>,
     style: Style,
@@ -423,6 +424,7 @@ where
 /// (0..5).map(|i| format!("Item{i}")).collect::<List>();
 /// ```
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize), derive(serde::Deserialize))]
 pub struct List<'a> {
     block: Option<Block<'a>>,
     items: Vec<ListItem<'a>>,
@@ -433,7 +435,7 @@ pub struct List<'a> {
     /// Style used to render selected item
     highlight_style: Style,
     /// Symbol in front of the selected item (Shift all items to the right)
-    highlight_symbol: Option<&'a str>,
+    highlight_symbol: Option<std::borrow::Cow<'a, str>>,
     /// Whether to repeat the highlight symbol for each line of the selected item
     repeat_highlight_symbol: bool,
     /// Decides when to allocate spacing for the selection symbol
@@ -448,6 +450,7 @@ pub struct List<'a> {
 ///
 /// See [`List::direction`].
 #[derive(Debug, Default, Display, EnumString, Clone, Copy, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize), derive(serde::Deserialize))]
 pub enum ListDirection {
     /// The first value is on the top, going to the bottom
     #[default]
@@ -594,8 +597,8 @@ impl<'a> List<'a> {
     /// let list = List::new(items).highlight_symbol(">>");
     /// ```
     #[must_use = "method moves the value of self and returns the modified value"]
-    pub const fn highlight_symbol(mut self, highlight_symbol: &'a str) -> Self {
-        self.highlight_symbol = Some(highlight_symbol);
+    pub fn highlight_symbol(mut self, highlight_symbol: &'a str) -> Self {
+        self.highlight_symbol = Some(highlight_symbol.into());
         self
     }
 
@@ -936,8 +939,9 @@ impl StatefulWidgetRef for List<'_> {
         state.offset = first_visible_index;
 
         // Get our set highlighted symbol (if one was set)
-        let highlight_symbol = self.highlight_symbol.unwrap_or("");
-        let blank_symbol = " ".repeat(highlight_symbol.width());
+        let highlight_symbol = self.highlight_symbol.as_ref().map(|hs| hs.as_ref()).unwrap_or_default();
+        let highlight_symbol_width = highlight_symbol.width();
+        let blank_symbol = " ".repeat(highlight_symbol_width);
 
         let mut current_height = 0;
         let selection_spacing = self.highlight_spacing.should_add(state.selected.is_some());
@@ -970,7 +974,7 @@ impl StatefulWidgetRef for List<'_> {
             let is_selected = state.selected.map_or(false, |s| s == i);
 
             let item_area = if selection_spacing {
-                let highlight_symbol_width = self.highlight_symbol.unwrap_or("").width() as u16;
+                let highlight_symbol_width = highlight_symbol_width as u16;
                 Rect {
                     x: row_area.x + highlight_symbol_width,
                     width: row_area.width.saturating_sub(highlight_symbol_width),
@@ -982,15 +986,15 @@ impl StatefulWidgetRef for List<'_> {
             item.content.clone().render(item_area, buf);
 
             for j in 0..item.content.height() {
-                // if the item is selected, we need to display the highlight symbol:
-                // - either for the first line of the item only,
-                // - or for each line of the item if the appropriate option is set
-                let symbol = if is_selected && (j == 0 || self.repeat_highlight_symbol) {
-                    highlight_symbol
-                } else {
-                    &blank_symbol
-                };
                 if selection_spacing {
+                    // if the item is selected, we need to display the highlight symbol:
+                    // - either for the first line of the item only,
+                    // - or for each line of the item if the appropriate option is set
+                    let symbol: &str = if is_selected && (j == 0 || self.repeat_highlight_symbol) {
+                        highlight_symbol
+                    } else {
+                        &blank_symbol
+                    };
                     buf.set_stringn(
                         x,
                         y + j as u16,

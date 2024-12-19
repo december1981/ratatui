@@ -5,6 +5,7 @@ use bitflags::bitflags;
 bitflags! {
     /// Bitflags that can be composed to set the visible borders essentially on the block widget.
     #[derive(Default, Clone, Copy, Eq, PartialEq, Hash)]
+    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     pub struct Borders: u8 {
         /// Show no border (default)
         const NONE   = 0b0000;
