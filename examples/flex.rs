@@ -452,14 +452,14 @@ impl Example {
     fn render_spacer(spacer: Rect, buf: &mut Buffer) {
         if spacer.width > 1 {
             let corners_only = symbols::border::Set {
-                top_left: line::NORMAL.top_left,
-                top_right: line::NORMAL.top_right,
-                bottom_left: line::NORMAL.bottom_left,
-                bottom_right: line::NORMAL.bottom_right,
-                vertical_left: " ",
-                vertical_right: " ",
-                horizontal_top: " ",
-                horizontal_bottom: " ",
+                top_left: line::NORMAL.top_left.into(),
+                top_right: line::NORMAL.top_right.into(),
+                bottom_left: line::NORMAL.bottom_left.into(),
+                bottom_right: line::NORMAL.bottom_right.into(),
+                vertical_left: " ".into(),
+                vertical_right: " ".into(),
+                horizontal_top: " ".into(),
+                horizontal_bottom: " ".into(),
             };
             Block::bordered()
                 .border_set(corners_only)

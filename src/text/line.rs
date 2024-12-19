@@ -144,6 +144,7 @@ use crate::prelude::*;
 ///
 /// [`Paragraph`]: crate::widgets::Paragraph
 #[derive(Debug, Default, Clone, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Line<'a> {
     /// The spans that make up this line of text.
     pub spans: Vec<Span<'a>>,

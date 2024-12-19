@@ -164,6 +164,7 @@ use crate::prelude::*;
 ///
 /// [`Paragraph`]: crate::widgets::Paragraph
 #[derive(Debug, Default, Clone, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Text<'a> {
     /// The lines that make up this piece of text.
     pub lines: Vec<Line<'a>>,

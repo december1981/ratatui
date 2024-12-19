@@ -90,6 +90,7 @@ use crate::prelude::*;
 /// [`Stylize`]: crate::style::Stylize
 /// [`Cow<str>`]: std::borrow::Cow
 #[derive(Debug, Default, Clone, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Span<'a> {
     /// The content of the span as a Clone-on-write string.
     pub content: Cow<'a, str>,

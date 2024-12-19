@@ -29,6 +29,7 @@ use crate::{
 ///     .wrap(Wrap { trim: true });
 /// ```
 #[derive(Debug, Default, Clone, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize), derive(serde::Deserialize))]
 pub struct Paragraph<'a> {
     /// A block to wrap the widget in
     block: Option<Block<'a>>,
@@ -74,6 +75,7 @@ pub struct Paragraph<'a> {
 /// // that is long enough to wrap
 /// ```
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Wrap {
     /// Should leading whitespace be trimmed
     pub trim: bool,
