@@ -409,7 +409,7 @@ impl Debug for Buffer {
                     overwritten.push((x, c.symbol()));
                 }
                 skip = std::cmp::max(skip, c.symbol().width()).saturating_sub(1);
-                #[cfg(feature = "underline-color")]
+                #[cfg(any(feature = "underline-color", feature = "underline-color-no-crossterm"))]
                 {
                     let style = (c.fg, c.bg, c.underline_color, c.modifier);
                     if last_style != Some(style) {
@@ -417,7 +417,7 @@ impl Debug for Buffer {
                         styles.push((x, y, c.fg, c.bg, c.underline_color, c.modifier));
                     }
                 }
-                #[cfg(not(feature = "underline-color"))]
+                #[cfg(all(not(feature = "underline-color"), not(feature = "underline-color-no-crossterm")))]
                 {
                     let style = (c.fg, c.bg, c.modifier);
                     if last_style != Some(style) {
@@ -435,12 +435,12 @@ impl Debug for Buffer {
         }
         f.write_str("    ],\n    styles: [\n")?;
         for s in styles {
-            #[cfg(feature = "underline-color")]
+            #[cfg(any(feature = "underline-color", feature = "underline-color-no-crossterm"))]
             f.write_fmt(format_args!(
                 "        x: {}, y: {}, fg: {:?}, bg: {:?}, underline: {:?}, modifier: {:?},\n",
                 s.0, s.1, s.2, s.3, s.4, s.5
             ))?;
-            #[cfg(not(feature = "underline-color"))]
+            #[cfg(all(not(feature = "underline-color"), not(feature = "underline-color-no-crossterm")))]
             f.write_fmt(format_args!(
                 "        x: {}, y: {}, fg: {:?}, bg: {:?}, modifier: {:?},\n",
                 s.0, s.1, s.2, s.3, s.4
@@ -480,7 +480,7 @@ mod tests {
                 .bg(Color::Yellow)
                 .add_modifier(Modifier::BOLD),
         );
-        #[cfg(feature = "underline-color")]
+        #[cfg(any(feature = "underline-color", feature = "underline-color-no-crossterm"))]
         assert_eq!(
             format!("{buf:?}"),
             indoc::indoc!(
@@ -498,7 +498,7 @@ mod tests {
                 }"
             )
         );
-        #[cfg(not(feature = "underline-color"))]
+        #[cfg(all(not(feature = "underline-color"), not(feature = "underline-color-no-crossterm")))]
         assert_eq!(
             format!("{buf:?}"),
             indoc::indoc!(

@@ -381,7 +381,7 @@ impl WidgetRef for LineGauge<'_> {
                 .set_style(Style {
                     fg: self.gauge_style.fg,
                     bg: None,
-                    #[cfg(feature = "underline-color")]
+                    #[cfg(any(feature = "underline-color", feature = "underline-color-no-crossterm"))]
                     underline_color: self.gauge_style.underline_color,
                     add_modifier: self.gauge_style.add_modifier,
                     sub_modifier: self.gauge_style.sub_modifier,
@@ -393,7 +393,7 @@ impl WidgetRef for LineGauge<'_> {
                 .set_style(Style {
                     fg: self.gauge_style.bg,
                     bg: None,
-                    #[cfg(feature = "underline-color")]
+                    #[cfg(any(feature = "underline-color", feature = "underline-color-no-crossterm"))]
                     underline_color: self.gauge_style.underline_color,
                     add_modifier: self.gauge_style.add_modifier,
                     sub_modifier: self.gauge_style.sub_modifier,

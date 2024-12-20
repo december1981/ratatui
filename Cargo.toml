@@ -129,6 +129,10 @@ widget-calendar = ["dep:time"]
 #! on Windows 7.
 ## enables the backend code that sets the underline color.
 underline-color = ["dep:crossterm"]
+## For widgets, we need to enable the underline field sometimes without crossterm.
+## eg we're running  with a wasm target and we want to serialise it to the host to render
+## which is running ratatui with crossterm enabled. bincode will not deserialise correctly otherwise.
+underline-color-no-crossterm = []
 
 #! The following features are unstable and may change in the future:
 

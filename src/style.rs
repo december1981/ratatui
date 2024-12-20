@@ -171,7 +171,7 @@ impl fmt::Debug for Modifier {
 ///     Style::default()
 ///         .bg(Color::Red)
 ///         .add_modifier(Modifier::UNDERLINED),
-///     #[cfg(feature = "underline-color")]
+///     #[cfg(any(feature = "underline-color", feature = "underline-color-no-crossterm"))]
 ///     Style::default().underline_color(Color::Green),
 ///     Style::default()
 ///         .fg(Color::Yellow)
@@ -185,7 +185,7 @@ impl fmt::Debug for Modifier {
 ///     Style {
 ///         fg: Some(Color::Yellow),
 ///         bg: Some(Color::Red),
-///         #[cfg(feature = "underline-color")]
+///         #[cfg(any(feature = "underline-color", feature = "underline-color-no-crossterm"))]
 ///         underline_color: Some(Color::Green),
 ///         add_modifier: Modifier::BOLD | Modifier::UNDERLINED,
 ///         sub_modifier: Modifier::empty(),
@@ -214,7 +214,7 @@ impl fmt::Debug for Modifier {
 ///     Style {
 ///         fg: Some(Color::Yellow),
 ///         bg: Some(Color::Reset),
-///         #[cfg(feature = "underline-color")]
+///         #[cfg(any(feature = "underline-color", feature = "underline-color-no-crossterm"))]
 ///         underline_color: Some(Color::Reset),
 ///         add_modifier: Modifier::empty(),
 ///         sub_modifier: Modifier::empty(),
@@ -227,7 +227,7 @@ impl fmt::Debug for Modifier {
 pub struct Style {
     pub fg: Option<Color>,
     pub bg: Option<Color>,
-    #[cfg(feature = "underline-color")]
+    #[cfg(any(feature = "underline-color", feature = "underline-color-no-crossterm"))]
     pub underline_color: Option<Color>,
     pub add_modifier: Modifier,
     pub sub_modifier: Modifier,
@@ -256,7 +256,7 @@ impl Style {
         Self {
             fg: None,
             bg: None,
-            #[cfg(feature = "underline-color")]
+            #[cfg(any(feature = "underline-color", feature = "underline-color-no-crossterm"))]
             underline_color: None,
             add_modifier: Modifier::empty(),
             sub_modifier: Modifier::empty(),
@@ -268,7 +268,7 @@ impl Style {
         Self {
             fg: Some(Color::Reset),
             bg: Some(Color::Reset),
-            #[cfg(feature = "underline-color")]
+            #[cfg(any(feature = "underline-color", feature = "underline-color-no-crossterm"))]
             underline_color: Some(Color::Reset),
             add_modifier: Modifier::empty(),
             sub_modifier: Modifier::all(),
@@ -334,7 +334,7 @@ impl Style {
     ///         .add_modifier(Modifier::UNDERLINED)
     /// );
     /// ```
-    #[cfg(feature = "underline-color")]
+    #[cfg(any(feature = "underline-color", feature = "underline-color-no-crossterm"))]
     #[must_use = "`underline_color` returns the modified style without modifying the original"]
     pub const fn underline_color(mut self, color: Color) -> Self {
         self.underline_color = Some(color);
@@ -406,7 +406,7 @@ impl Style {
         self.fg = other.fg.or(self.fg);
         self.bg = other.bg.or(self.bg);
 
-        #[cfg(feature = "underline-color")]
+        #[cfg(any(feature = "underline-color", feature = "underline-color-no-crossterm"))]
         {
             self.underline_color = other.underline_color.or(self.underline_color);
         }

@@ -25,7 +25,7 @@ pub struct Cell {
     pub bg: Color,
 
     /// The underline color of the cell.
-    #[cfg(feature = "underline-color")]
+    #[cfg(any(feature = "underline-color", feature = "underline-color-no-crossterm"))]
     pub underline_color: Color,
 
     /// The modifier of the cell.
@@ -78,7 +78,7 @@ impl Cell {
         if let Some(c) = style.bg {
             self.bg = c;
         }
-        #[cfg(feature = "underline-color")]
+        #[cfg(any(feature = "underline-color", feature = "underline-color-no-crossterm"))]
         if let Some(c) = style.underline_color {
             self.underline_color = c;
         }
@@ -89,14 +89,14 @@ impl Cell {
 
     /// Returns the style of the cell.
     pub fn style(&self) -> Style {
-        #[cfg(feature = "underline-color")]
+        #[cfg(any(feature = "underline-color", feature = "underline-color-no-crossterm"))]
         return Style::default()
             .fg(self.fg)
             .bg(self.bg)
             .underline_color(self.underline_color)
             .add_modifier(self.modifier);
 
-        #[cfg(not(feature = "underline-color"))]
+        #[cfg(all(not(feature = "underline-color"), not(feature = "underline-color-no-crossterm")))]
         return Style::default()
             .fg(self.fg)
             .bg(self.bg)
@@ -117,7 +117,7 @@ impl Cell {
         self.symbol = CompactString::new_inline(" ");
         self.fg = Color::Reset;
         self.bg = Color::Reset;
-        #[cfg(feature = "underline-color")]
+        #[cfg(any(feature = "underline-color", feature = "underline-color-no-crossterm"))]
         {
             self.underline_color = Color::Reset;
         }
@@ -132,7 +132,7 @@ impl Default for Cell {
             symbol: CompactString::new_inline(" "),
             fg: Color::Reset,
             bg: Color::Reset,
-            #[cfg(feature = "underline-color")]
+            #[cfg(any(feature = "underline-color", feature = "underline-color-no-crossterm"))]
             underline_color: Color::Reset,
             modifier: Modifier::empty(),
             skip: false,
