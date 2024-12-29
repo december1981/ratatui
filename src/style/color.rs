@@ -66,7 +66,7 @@ use std::{
 ///
 /// [ANSI color table]: https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Color {
     /// Resets the foreground or background color
     #[default]
@@ -138,17 +138,6 @@ impl Color {
         let g = (u >> 8) as u8;
         let b = u as u8;
         Self::Rgb(r, g, b)
-    }
-}
-
-#[cfg(feature = "serde")]
-impl<'de> serde::Deserialize<'de> for Color {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        FromStr::from_str(&s).map_err(serde::de::Error::custom)
     }
 }
 
