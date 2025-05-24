@@ -126,9 +126,11 @@ all-widgets = ["widget-calendar"]
 widget-calendar = ["dep:time"]
 
 #! Underline color is only supported by the [`CrosstermBackend`] backend, and is not supported
-#! on Windows 7.
+#! on Windows 7. Do not force crossterm as a dependency, however, to allow wasm builds. For primitives generated
+# in the wasm runtime which are then sent to the host, which should be using a crossterm backend for the underlines to be seen.
+# underline-color = ["dep:crossterm"]
 ## enables the backend code that sets the underline color.
-underline-color = ["dep:crossterm"]
+underline-color = []
 
 #! The following features are unstable and may change in the future:
 
