@@ -70,6 +70,7 @@ use ratatui_core::text::Text;
 /// [`Line`]: ratatui_core::text::Line
 /// [`Line::alignment`]: ratatui_core::text::Line::alignment
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct ListItem<'a> {
     pub(crate) content: Text<'a>,
     pub(crate) style: Style,

@@ -30,6 +30,11 @@ std = ["time/local-offset"]
 ## This is useful if you want to save themes to a file.
 serde = ["dep:serde", "ratatui-core/serde"]
 
+## enables encoding and decoding of widgets, style and color types using the [`bincode`] crate.
+## This is useful if you want to use ratatui in wasm and then encode/decode back to host runtime
+## to render in your chosen backend.
+bincode = ["dep:bincode", "ratatui-core/bincode"]
+
 #! Widgets that add dependencies are gated behind feature flags to prevent unused transitive
 #! dependencies. The available features are:
 
@@ -49,6 +54,7 @@ unstable = ["unstable-rendered-line-info"]
 unstable-rendered-line-info = []
 
 [dependencies]
+bincode = { workspace = true, optional = true }
 bitflags.workspace = true
 document-features = { workspace = true, optional = true }
 hashbrown.workspace = true

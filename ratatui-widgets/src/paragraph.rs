@@ -74,6 +74,7 @@ use crate::reflow::{LineComposer, LineTruncator, WordWrapper, WrappedLine};
 ///
 /// [`Span`]: ratatui_core::text::Span
 #[derive(Debug, Default, Clone, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct Paragraph<'a> {
     /// A block to wrap the widget in
     block: Option<Block<'a>>,
@@ -120,6 +121,7 @@ pub struct Paragraph<'a> {
 /// // that is long enough to wrap
 /// ```
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct Wrap {
     /// Should leading whitespace be trimmed
     pub trim: bool,

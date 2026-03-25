@@ -57,6 +57,15 @@ serde = [
   "ratatui-termwiz?/serde",
 ]
 
+## Enables encoding and decoding of widgets, style and color types using the [`bincode`] crate.
+## This is useful if you want to use ratatui in wasm and then encode/decode back to host runtime
+## to render in your chosen backend.
+bincode = [
+  "dep:bincode",
+  "ratatui-core/bincode",
+  "ratatui-widgets/bincode",
+]
+
 ## enables layout cache
 layout-cache = ["std", "ratatui-core/layout-cache"]
 
@@ -132,6 +141,7 @@ ratatui-macros = { workspace = true, optional = true }
 ratatui-termwiz = { workspace = true, optional = true }
 ratatui-widgets = { workspace = true }
 serde = { workspace = true, optional = true }
+bincode = { workspace = true, optional = true }
 
 [target.'cfg(not(windows))'.dependencies]
 ratatui-termion = { workspace = true, optional = true }

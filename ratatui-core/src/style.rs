@@ -99,8 +99,8 @@ bitflags! {
     ///
     /// let m = Modifier::BOLD | Modifier::ITALIC;
     /// ```
-    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     #[derive(Default, Clone, Copy, Eq, PartialEq, Hash)]
+    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     pub struct Modifier: u16 {
         const BOLD              = 0b0000_0000_0001;
         const DIM               = 0b0000_0000_0010;
@@ -111,6 +111,45 @@ bitflags! {
         const REVERSED          = 0b0000_0100_0000;
         const HIDDEN            = 0b0000_1000_0000;
         const CROSSED_OUT       = 0b0001_0000_0000;
+    }
+}
+
+/// Implement the `Encode` trait for `Modifier` manually if the bincode feature is enabled.
+///
+#[cfg(feature = "bincode")]
+impl bincode::Encode for Modifier {
+    fn encode<E: bincode::enc::Encoder>(
+        &self,
+        encoder: &mut E,
+    ) -> Result<(), bincode::error::EncodeError> {
+        self.bits().encode(encoder)
+    }
+}
+
+/// Implement the `Decode` trait for `Modifier` manually if the bincode feature is enabled.
+///
+#[cfg(feature = "bincode")]
+impl<C> bincode::Decode<C> for Modifier {
+    fn decode<D: bincode::de::Decoder<Context = C>>(
+        decoder: &mut D,
+    ) -> Result<Self, bincode::error::DecodeError> {
+        let bits = u16::decode(decoder)?;
+        Modifier::from_bits(bits).ok_or_else(|| {
+            bincode::error::DecodeError::Other("invalid Modifier bits")
+        })
+    }
+}
+
+/// Implement the `BorrowDecode` trait for `Modifier` manually if the bincode feature is enabled.
+///
+#[cfg(feature = "bincode")]
+impl<'de, C> bincode::BorrowDecode<'de, C> for Modifier {
+    fn borrow_decode<D: bincode::de::BorrowDecoder<'de>>(
+        decoder: &mut D,
+    ) -> Result<Self, bincode::error::DecodeError> {
+        let bits = u16::borrow_decode(decoder)?;
+        Modifier::from_bits(bits)
+            .ok_or(bincode::error::DecodeError::Other("invalid Modifier bits"))
     }
 }
 
@@ -236,6 +275,7 @@ impl fmt::Debug for Modifier {
 /// ```
 #[derive(Default, Clone, Copy, Eq, PartialEq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct Style {
     /// The foreground color.
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
