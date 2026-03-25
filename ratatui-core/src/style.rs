@@ -99,8 +99,8 @@ bitflags! {
     ///
     /// let m = Modifier::BOLD | Modifier::ITALIC;
     /// ```
-    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     #[derive(Default, Clone, Copy, Eq, PartialEq, Hash)]
+    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     pub struct Modifier: u16 {
         const BOLD              = 0b0000_0000_0001;
         const DIM               = 0b0000_0000_0010;

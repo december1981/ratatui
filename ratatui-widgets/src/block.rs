@@ -214,6 +214,7 @@ mod shadow;
 /// [`List`]: crate::list::List
 /// [`Layout`]: ratatui_core::layout::Layout
 #[derive(Debug, Default, Clone, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Block<'a> {
     /// List of titles
     titles: Vec<(Option<TitlePosition>, Line<'a>)>,
@@ -257,6 +258,7 @@ pub struct Block<'a> {
 ///     .title("Bottom Title");
 /// ```
 #[derive(Debug, Default, Display, EnumString, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum TitlePosition {
     /// Position the title at the top of the block.
     #[default]
@@ -603,7 +605,7 @@ impl<'a> Block<'a> {
     /// // ╰─────╯
     /// ```
     #[must_use = "method moves the value of self and returns the modified value"]
-    pub const fn border_type(mut self, border_type: BorderType) -> Self {
+    pub fn border_type(mut self, border_type: BorderType) -> Self {
         self.border_set = border_type.to_border_set();
         self
     }
@@ -623,7 +625,7 @@ impl<'a> Block<'a> {
     /// // ║     ║
     /// // ╚═════╝
     #[must_use = "method moves the value of self and returns the modified value"]
-    pub const fn border_set(mut self, border_set: border::Set<'a>) -> Self {
+    pub fn border_set(mut self, border_set: border::Set<'a>) -> Self {
         self.border_set = border_set;
         self
     }
@@ -847,25 +849,25 @@ impl Block<'_> {
                 Borders::LEFT,
                 left..=left,
                 top_inset..=bottom_inset,
-                self.border_set.vertical_left,
+                self.border_set.vertical_left.clone(),
             ),
             (
                 Borders::TOP,
                 left_inset..=right_inset,
                 top..=top,
-                self.border_set.horizontal_top,
+                self.border_set.horizontal_top.clone(),
             ),
             (
                 Borders::RIGHT,
                 right..=right,
                 top_inset..=bottom_inset,
-                self.border_set.vertical_right,
+                self.border_set.vertical_right.clone(),
             ),
             (
                 Borders::BOTTOM,
                 left_inset..=right_inset,
                 bottom..=bottom,
-                self.border_set.horizontal_bottom,
+                self.border_set.horizontal_bottom.clone(),
             ),
         ];
         for (border, x_range, y_range, symbol) in sides {
@@ -873,7 +875,7 @@ impl Block<'_> {
                 for x in x_range {
                     for y in y_range.clone() {
                         buf[(x, y)]
-                            .merge_symbol(symbol, self.merge_borders)
+                            .merge_symbol(&symbol, self.merge_borders)
                             .set_style(self.border_style);
                     }
                 }
@@ -887,32 +889,32 @@ impl Block<'_> {
                 Borders::RIGHT | Borders::BOTTOM,
                 area.right().saturating_sub(1),
                 area.bottom().saturating_sub(1),
-                self.border_set.bottom_right,
+                self.border_set.bottom_right.clone(),
             ),
             (
                 Borders::RIGHT | Borders::TOP,
                 area.right().saturating_sub(1),
                 area.top(),
-                self.border_set.top_right,
+                self.border_set.top_right.clone(),
             ),
             (
                 Borders::LEFT | Borders::BOTTOM,
                 area.left(),
                 area.bottom().saturating_sub(1),
-                self.border_set.bottom_left,
+                self.border_set.bottom_left.clone(),
             ),
             (
                 Borders::LEFT | Borders::TOP,
                 area.left(),
                 area.top(),
-                self.border_set.top_left,
+                self.border_set.top_left.clone(),
             ),
         ];
 
         for (border, x, y, symbol) in corners {
             if self.borders.contains(border) {
                 buf[(x, y)]
-                    .merge_symbol(symbol, self.merge_borders)
+                    .merge_symbol(&symbol, self.merge_borders)
                     .set_style(self.border_style);
             }
         }
@@ -1849,14 +1851,14 @@ mod tests {
         let mut buffer = Buffer::empty(Rect::new(0, 0, 10, 3));
         Block::bordered()
             .border_set(border::Set {
-                top_left: "1",
-                top_right: "2",
-                bottom_left: "3",
-                bottom_right: "4",
-                vertical_left: "L",
-                vertical_right: "R",
-                horizontal_top: "T",
-                horizontal_bottom: "B",
+                top_left: "1".into(),
+                top_right: "2".into(),
+                bottom_left: "3".into(),
+                bottom_right: "4".into(),
+                vertical_left: "L".into(),
+                vertical_right: "R".into(),
+                horizontal_top: "T".into(),
+                horizontal_bottom: "B".into(),
             })
             .render(buffer.area, &mut buffer);
         #[rustfmt::skip]
