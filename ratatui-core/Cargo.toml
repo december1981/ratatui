@@ -32,6 +32,7 @@ std = [
   "compact_str/std",
   "unicode-truncate/std",
   "strum/std",
+  "palette?/std"
 ]
 
 ## enables layout cache
@@ -41,7 +42,7 @@ layout-cache = ["std"]
 anstyle = ["dep:anstyle"]
 
 ## enables conversions from colors in the [`palette`] crate to [`Color`](crate::style::Color).
-palette = ["std", "dep:palette"]
+palette = ["dep:palette"]
 
 ## enables portable-atomic integration for targets that don't support atomic types.
 portable-atomic = ["kasuari/portable-atomic"]
@@ -56,7 +57,7 @@ scrolling-regions = []
 
 ## enables serialization and deserialization of style and color types using the [`serde`] crate.
 ## This is useful if you want to save themes to a file.
-serde = ["std", "dep:serde", "bitflags/serde", "compact_str/serde"]
+serde = ["dep:serde", "bitflags/serde", "compact_str/serde"]
 
 [dependencies]
 anstyle = { workspace = true, optional = true }

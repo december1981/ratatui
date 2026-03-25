@@ -106,6 +106,7 @@ mod state;
 /// [`StatefulWidget`]: ratatui_core::widgets::StatefulWidget
 /// [`Widget`]: ratatui_core::widgets::Widget
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct List<'a> {
     /// An optional block to wrap the widget in
     pub(crate) block: Option<Block<'a>>,

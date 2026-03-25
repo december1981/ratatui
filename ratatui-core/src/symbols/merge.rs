@@ -59,6 +59,7 @@ use core::str::FromStr;
 ///     https://docs.rs/ratatui/latest/ratatui/widgets/block/struct.Block.html#method.merge_borders
 /// [`Cell::merge_symbol`]: crate::buffer::Cell::merge_symbol
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum MergeStrategy {
     /// Replaces the previous symbol with the next one.
     ///
