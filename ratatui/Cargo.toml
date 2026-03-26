@@ -42,19 +42,19 @@ termion = ["std", "dep:ratatui-termion"]
 termwiz = ["std", "dep:ratatui-termwiz"]
 
 ## enables std
-std = ["ratatui-core/std", "ratatui-widgets/std"]
+std = ["ratatui-core/std", "ratatui-widgets/std", "bincode?/std", "serde?/std"]
 
 #! The following optional features are available for all backends:
 ## enables serialization and deserialization of style and color types using the [`serde`] crate.
 ## This is useful if you want to save themes to a file.
 serde = [
-  "std",
   "dep:serde",
   "ratatui-core/serde",
   "ratatui-widgets/serde",
   "ratatui-crossterm?/serde",
   "ratatui-termion?/serde",
   "ratatui-termwiz?/serde",
+  "bincode?/serde"
 ]
 
 ## Enables encoding and decoding of widgets, style and color types using the [`bincode`] crate.
@@ -70,7 +70,7 @@ bincode = [
 layout-cache = ["std", "ratatui-core/layout-cache"]
 
 ## enables conversions from colors in the [`palette`] crate to [`Color`](crate::style::Color).
-palette = ["std", "ratatui-core/palette", "dep:palette"]
+palette = ["ratatui-core/palette", "dep:palette"]
 
 ## enables portable-atomic integration for targets that don't support atomic types.
 portable-atomic = ["ratatui-core/portable-atomic"]
@@ -132,6 +132,7 @@ unstable-backend-writer = [
 ]
 
 [dependencies]
+bincode = { workspace = true, optional = true }
 document-features = { workspace = true, optional = true }
 instability.workspace = true
 palette = { workspace = true, optional = true }
@@ -141,7 +142,6 @@ ratatui-macros = { workspace = true, optional = true }
 ratatui-termwiz = { workspace = true, optional = true }
 ratatui-widgets = { workspace = true }
 serde = { workspace = true, optional = true }
-bincode = { workspace = true, optional = true }
 
 [target.'cfg(not(windows))'.dependencies]
 ratatui-termion = { workspace = true, optional = true }
