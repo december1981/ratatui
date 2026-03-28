@@ -58,6 +58,12 @@ serde = [
   "ratatui-widgets/serde",
 ]
 
+## prevent serde skip_serializing_if attr
+serde-no-skip-serializing = ["serde", "ratatui-core/serde-no-skip-serializing"]
+
+## do not use custom impls for serde Serialize/Deserialize, always use its derive macro
+serde-no-custom-impl = ["serde", "ratatui-core/serde-no-custom-impl"]
+
 ## enables layout cache
 layout-cache = ["ratatui-core/layout-cache"]
 
