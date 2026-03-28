@@ -56,6 +56,11 @@ serde = [
   "ratatui-termwiz?/serde",
 ]
 
+## to avoid serde serialize skipping fields
+serde-no-skip-serializing = ["serde", "ratatui-core/serde-no-skip-serializing"]
+## to avoid serde using custom Serialize/Deserialize implementations
+serde-no-custom-impl = ["serde", "ratatui-core/serde-no-custom-impl"]
+
 ## enables layout cache
 layout-cache = ["std", "ratatui-core/layout-cache"]
 

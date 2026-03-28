@@ -59,6 +59,11 @@ scrolling-regions = []
 ## This is useful if you want to save themes to a file.
 serde = ["dep:serde", "bitflags/serde", "compact_str/serde"]
 
+## to avoid serde skipping serializing fields
+serde-no-skip-serializing = ["serde"]
+## to avoid serde using custom Serialize/Deserialize implementations
+serde-no-custom-impl = ["serde"]
+
 [dependencies]
 anstyle = { workspace = true, optional = true }
 bitflags.workspace = true

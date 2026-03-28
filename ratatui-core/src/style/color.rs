@@ -66,6 +66,7 @@ use crate::style::stylize::{ColorDebug, ColorDebugKind};
 ///
 /// [ANSI color table]: https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "serde-no-custom-impl", derive(serde::Serialize, serde::Deserialize))]
 pub enum Color {
     /// Resets the foreground or background color
     #[default]
@@ -138,7 +139,7 @@ impl Color {
     }
 }
 
-#[cfg(feature = "serde")]
+#[cfg(all(feature="serde", not(feature = "serde-no-custom-impl")))]
 impl serde::Serialize for Color {
     /// This utilises the [`fmt::Display`] implementation for serialization.
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -151,7 +152,7 @@ impl serde::Serialize for Color {
     }
 }
 
-#[cfg(feature = "serde")]
+#[cfg(all(feature="serde", not(feature = "serde-no-custom-impl")))]
 impl<'de> serde::Deserialize<'de> for Color {
     /// This is used to deserialize a value into Color via serde.
     ///
