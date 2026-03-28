@@ -131,7 +131,6 @@ use super::{Constraint, Flex, Layout};
 
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct Rect {
     /// The x coordinate of the top left corner of the `Rect`.
     pub x: u16,

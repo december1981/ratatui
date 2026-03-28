@@ -28,45 +28,6 @@ impl Borders {
     pub const NONE: Self = Self::empty();
 }
 
-/// Implement the `Encode` trait for `Borders` manually if the bincode feature is enabled.
-///
-#[cfg(feature = "bincode")]
-impl bincode::Encode for Borders {
-    fn encode<E: bincode::enc::Encoder>(
-        &self,
-        encoder: &mut E,
-    ) -> Result<(), bincode::error::EncodeError> {
-        self.bits().encode(encoder)
-    }
-}
-
-/// Implement the `Decode` trait for `Borders` manually if the bincode feature is enabled.
-///
-#[cfg(feature = "bincode")]
-impl<C> bincode::Decode<C> for Borders {
-    fn decode<D: bincode::de::Decoder<Context = C>>(
-        decoder: &mut D,
-    ) -> Result<Self, bincode::error::DecodeError> {
-        let bits = u8::decode(decoder)?;
-        Borders::from_bits(bits).ok_or_else(|| {
-            bincode::error::DecodeError::Other("invalid Borders bits")
-        })
-    }
-}
-
-/// Implement the `BorrowDecode` trait for `Borders` manually if the bincode feature is enabled.
-///
-#[cfg(feature = "bincode")]
-impl<'de, C> bincode::BorrowDecode<'de, C> for Borders {
-    fn borrow_decode<D: bincode::de::BorrowDecoder<'de>>(
-        decoder: &mut D,
-    ) -> Result<Self, bincode::error::DecodeError> {
-        let bits = u8::borrow_decode(decoder)?;
-        Borders::from_bits(bits)
-            .ok_or(bincode::error::DecodeError::Other("invalid Borders bits"))
-    }
-}
-
 /// The type of border of a [`Block`](crate::block::Block).
 ///
 /// See the [`borders`](crate::block::Block::borders) method of `Block` to configure its borders.

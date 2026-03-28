@@ -66,7 +66,6 @@ use crate::style::stylize::{ColorDebug, ColorDebugKind};
 ///
 /// [ANSI color table]: https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Hash)]
-#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub enum Color {
     /// Resets the foreground or background color
     #[default]

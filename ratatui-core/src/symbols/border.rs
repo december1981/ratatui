@@ -2,7 +2,7 @@ use alloc::borrow::Cow;
 use crate::symbols::{block, line};
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
-#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Set<'a> {
     pub top_left: Cow<'a, str>,
     pub top_right: Cow<'a, str>,

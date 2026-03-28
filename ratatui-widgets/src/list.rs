@@ -106,7 +106,7 @@ mod state;
 /// [`StatefulWidget`]: ratatui_core::widgets::StatefulWidget
 /// [`Widget`]: ratatui_core::widgets::Widget
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Default)]
-#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct List<'a> {
     /// An optional block to wrap the widget in
     pub(crate) block: Option<Block<'a>>,
@@ -135,7 +135,6 @@ pub struct List<'a> {
 /// See [`List::direction`].
 #[derive(Debug, Default, Display, EnumString, Clone, Copy, Eq, PartialEq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub enum ListDirection {
     /// The first value is on the top, going to the bottom
     #[default]

@@ -24,7 +24,6 @@
 /// [CSS padding]: https://developer.mozilla.org/en-US/docs/Web/CSS/padding
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct Padding {
     /// Left padding
     pub left: u16,

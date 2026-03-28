@@ -211,7 +211,7 @@ mod padding;
 /// [`List`]: crate::list::List
 /// [`Layout`]: ratatui_core::layout::Layout
 #[derive(Debug, Default, Clone, Eq, PartialEq, Hash)]
-#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Block<'a> {
     /// List of titles
     titles: Vec<(Option<TitlePosition>, Line<'a>)>,
@@ -253,7 +253,7 @@ pub struct Block<'a> {
 ///     .title("Bottom Title");
 /// ```
 #[derive(Debug, Default, Display, EnumString, Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum TitlePosition {
     /// Position the title at the top of the block.
     #[default]

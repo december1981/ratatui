@@ -193,7 +193,7 @@ use crate::widgets::Widget;
 ///
 /// [`Stylize`]: crate::style::Stylize
 #[derive(Default, Clone, Eq, PartialEq, Hash)]
-#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Text<'a> {
     /// The alignment of this text.
     pub alignment: Option<Alignment>,

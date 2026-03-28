@@ -96,7 +96,7 @@ use crate::widgets::Widget;
 /// [`Stylize`]: crate::style::Stylize
 /// [`Cow<str>`]: std::borrow::Cow
 #[derive(Default, Clone, Eq, PartialEq, Hash)]
-#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Span<'a> {
     /// The style of the span.
     pub style: Style,

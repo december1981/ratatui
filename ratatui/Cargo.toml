@@ -42,7 +42,7 @@ termion = ["std", "dep:ratatui-termion"]
 termwiz = ["std", "dep:ratatui-termwiz"]
 
 ## enables std
-std = ["ratatui-core/std", "ratatui-widgets/std", "bincode?/std", "serde?/std"]
+std = ["ratatui-core/std", "ratatui-widgets/std", "serde?/std"]
 
 #! The following optional features are available for all backends:
 ## enables serialization and deserialization of style and color types using the [`serde`] crate.
@@ -54,16 +54,6 @@ serde = [
   "ratatui-crossterm?/serde",
   "ratatui-termion?/serde",
   "ratatui-termwiz?/serde",
-  "bincode?/serde"
-]
-
-## Enables encoding and decoding of widgets, style and color types using the [`bincode`] crate.
-## This is useful if you want to use ratatui in wasm and then encode/decode back to host runtime
-## to render in your chosen backend.
-bincode = [
-  "dep:bincode",
-  "ratatui-core/bincode",
-  "ratatui-widgets/bincode",
 ]
 
 ## enables layout cache
@@ -132,7 +122,6 @@ unstable-backend-writer = [
 ]
 
 [dependencies]
-bincode = { workspace = true, optional = true }
 document-features = { workspace = true, optional = true }
 instability.workspace = true
 palette = { workspace = true, optional = true }
