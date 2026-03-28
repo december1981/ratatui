@@ -238,18 +238,27 @@ impl fmt::Debug for Modifier {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Style {
     /// The foreground color.
-    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    #[cfg_attr(
+        all(feature = "serde", not(feature = "serde-no-skip-serializing")),
+        serde(skip_serializing_if = "Option::is_none")
+    )]
     pub fg: Option<Color>,
     /// The background color.
-    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    #[cfg_attr(
+        all(feature = "serde", not(feature = "serde-no-skip-serializing")),
+        serde(skip_serializing_if = "Option::is_none")
+    )]
     pub bg: Option<Color>,
     /// The underline color.
     #[cfg(feature = "underline-color")]
-    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    #[cfg_attr(
+        all(feature = "serde", not(feature = "serde-no-skip-serializing")),
+        serde(skip_serializing_if = "Option::is_none")
+    )]
     pub underline_color: Option<Color>,
     /// The modifiers to add.
     #[cfg_attr(
-        feature = "serde",
+        all(feature = "serde", not(feature = "serde-no-skip-serializing")),
         serde(
             default,
             skip_serializing_if = "Modifier::is_empty",
@@ -259,7 +268,7 @@ pub struct Style {
     pub add_modifier: Modifier,
     /// The modifiers to remove.
     #[cfg_attr(
-        feature = "serde",
+        all(feature = "serde", not(feature = "serde-no-skip-serializing")),
         serde(
             default,
             skip_serializing_if = "Modifier::is_empty",
@@ -269,12 +278,12 @@ pub struct Style {
     pub sub_modifier: Modifier,
 }
 
-#[cfg(feature = "serde")]
 /// Deserialize a [`Modifier`] while treating missing or `null` values as empty.
 ///
 /// This helper is used with serde to coerce absent or `null` modifier fields to
 /// [`Modifier::empty`], allowing configuration files to omit these fields
 /// without triggering deserialization errors.
+#[cfg(all(feature = "serde", not(feature = "serde-no-skip-serializing")))]
 fn deserialize_modifier<'de, D>(deserializer: D) -> Result<Modifier, D::Error>
 where
     D: serde::Deserializer<'de>,
