@@ -35,7 +35,7 @@ pub use self::map::{Map, MapResolution};
 pub use self::points::Points;
 pub use self::rectangle::Rectangle;
 use crate::block::{Block, BlockExt};
-#[cfg(not(feature = "std"))]
+#[cfg(all(not(feature = "std"), not(target_family = "wasm")))]
 use crate::polyfills::F64Polyfills;
 
 mod circle;
