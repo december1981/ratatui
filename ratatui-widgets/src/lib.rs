@@ -129,7 +129,7 @@ pub mod sparkline;
 pub mod table;
 pub mod tabs;
 
-#[cfg(not(feature = "std"))]
+#[cfg(all(not(feature = "std"), not(target_family = "wasm")))]
 mod polyfills;
 mod reflow;
 
