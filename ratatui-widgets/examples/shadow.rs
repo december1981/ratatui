@@ -20,7 +20,7 @@ use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Offset, Rect};
 use ratatui::style::{Color, Style, Stylize};
 use ratatui::text::{Line, Text};
-use ratatui::widgets::{Block, Clear, Paragraph, Shadow, Wrap, dimmed};
+use ratatui::widgets::{Block, Clear, Paragraph, Shadow, Wrap};
 
 fn main() -> Result<()> {
     color_eyre::install()?;
@@ -93,7 +93,7 @@ fn render_symbol_shadow(frame: &mut Frame, area: Rect) {
 
 fn render_dimmed_shadow(frame: &mut Frame, area: Rect) {
     render_background_paragraph(frame, area, Style::new().fg(Color::White).bg(Color::Blue));
-    let shadow = Shadow::custom(dimmed())
+    let shadow = Shadow::dimmed()
         .style(Style::new().bg(Color::DarkGray))
         .offset(Offset::new(2, 1));
     let block = Block::bordered()
