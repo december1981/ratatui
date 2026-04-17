@@ -18,7 +18,7 @@ use ratatui_core::widgets::Widget;
 use strum::{Display, EnumString};
 
 pub use self::padding::Padding;
-pub use self::shadow::{CellEffect, Dimmed, Shadow, dimmed};
+pub use self::shadow::{CellEffect, Shadow};
 use crate::borders::{BorderType, Borders};
 
 mod padding;
