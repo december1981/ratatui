@@ -16,18 +16,15 @@ pub struct BufferDiff<'prev, 'next> {
     area: Rect,
     /// Current position in the flat cell array.
     pos: usize,
-    /// Remaining trailing cells physically covered by a preceding multi-width glyph in `next`.
-    /// These are normally suppressed; the terminal clears them when it draws the wide glyph.
+    /// Remaining trailing cells covered by a preceding multi-width glyph in `next`; suppressed
+    /// because the terminal clears them when it draws the wide glyph.
     to_skip: usize,
-    /// Cells that must be redrawn because the *wider* of the previous/next glyph at an earlier
-    /// column painted over them. This mirrors the classic ratatui `invalidated` counter that was
-    /// dropped by the cell-diff-options change (#1605): without it, shrinking a wide glyph (e.g. a
-    /// full-width `＋` or a styled background) leaves the trailing cell un-cleared because the new
-    /// content there happens to equal what we last drew.
+    /// Cells that must be redrawn because the wider of the previous/next glyph painted over them.
+    /// Mirrors the classic `invalidated` counter dropped by #1605; without it, shrinking a wide
+    /// glyph leaves its trailing cell un-cleared (the new content there equals what we last drew).
     invalidated: usize,
-    /// Whether the active `to_skip` region originates from a VS16 (U+FE0F) presentation sequence.
-    /// Such trailing cells are emitted when their symbol changes, working around terminals that
-    /// fail to clear them automatically.
+    /// Whether the active `to_skip` region is a VS16 (U+FE0F) sequence, whose trailing cells are
+    /// emitted on symbol change to work around terminals that don't clear them.
     vs16_trailing: bool,
 }
 
@@ -86,28 +83,21 @@ impl<'next> Iterator for BufferDiff<'_, 'next> {
             let current = &self.next[i];
             let previous = &self.prev[i];
 
-            // Decide whether this cell needs to be emitted, using the skip/invalidation state
-            // carried in from earlier columns (i.e. before folding in this cell's own width).
+            // Emit decision uses the skip/invalidation state carried in from earlier columns.
             let emit = if is_skip(current) {
-                // Caller-managed cell: never emitted, but still participates in width accounting.
                 false
             } else if self.to_skip > 0 {
-                // Inside the region physically covered by a preceding wide glyph in `next`.
-                // Normally suppressed (the terminal clears it when drawing the wide glyph), but
-                // some terminals fail to clear the trailing cell of a VS16 emoji, so emit it when
-                // its symbol changed. The style of a hidden trailing cell is not visible, so a
-                // style-only change must not trigger an update (it can mis-position the cursor).
+                // Trailing cell of a wide glyph: suppressed, except a VS16 sequence whose symbol
+                // changed (some terminals don't clear it). Style-only changes stay hidden.
                 self.vs16_trailing && previous.symbol() != current.symbol()
             } else {
                 match current.diff_option {
                     CellDiffOption::ForcedWidth(_) => current != previous,
                     CellDiffOption::AlwaysUpdate => true,
-                    // `Skip` is handled by `is_skip` above; only `None` reaches this arm.
                     _ => current != previous || self.invalidated > 0,
                 }
             };
 
-            // Fold this cell into the skip/invalidation state for the following columns.
             let width = current.cell_width() as usize;
             if self.to_skip > 0 {
                 self.to_skip -= 1;
@@ -119,8 +109,7 @@ impl<'next> Iterator for BufferDiff<'_, 'next> {
                 self.vs16_trailing =
                     width > 1 && current.symbol().chars().any(|c| c == '\u{FE0F}');
             }
-            // The previous glyph may have been wider than the next one; the cells it painted over
-            // must be redrawn even if their new content matches what we last drew there.
+            // Cells the wider of the two glyphs painted over must be redrawn even if unchanged.
             let affected = width.max(previous.cell_width() as usize);
             self.invalidated = affected.max(self.invalidated).saturating_sub(1);
 
