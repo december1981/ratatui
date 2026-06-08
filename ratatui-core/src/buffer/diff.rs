@@ -16,15 +16,19 @@ pub struct BufferDiff<'prev, 'next> {
     area: Rect,
     /// Current position in the flat cell array.
     pos: usize,
-    /// When processing VS16 trailing cells, tracks the range of trailing indices still to yield.
-    trailing: Option<TrailingState>,
-}
-
-/// Tracks pending trailing-cell yields for VS16 wide characters.
-#[derive(Debug)]
-struct TrailingState {
-    next_index: usize,
-    end: usize,
+    /// Remaining trailing cells physically covered by a preceding multi-width glyph in `next`.
+    /// These are normally suppressed; the terminal clears them when it draws the wide glyph.
+    to_skip: usize,
+    /// Cells that must be redrawn because the *wider* of the previous/next glyph at an earlier
+    /// column painted over them. This mirrors the classic ratatui `invalidated` counter that was
+    /// dropped by the cell-diff-options change (#1605): without it, shrinking a wide glyph (e.g. a
+    /// full-width `＋` or a styled background) leaves the trailing cell un-cleared because the new
+    /// content there happens to equal what we last drew.
+    invalidated: usize,
+    /// Whether the active `to_skip` region originates from a VS16 (U+FE0F) presentation sequence.
+    /// Such trailing cells are emitted when their symbol changes, working around terminals that
+    /// fail to clear them automatically.
+    vs16_trailing: bool,
 }
 
 impl<'prev, 'next> BufferDiff<'prev, 'next> {
@@ -53,7 +57,9 @@ impl<'prev, 'next> BufferDiff<'prev, 'next> {
             prev: &prev.content,
             area,
             pos: 0,
-            trailing: None,
+            to_skip: 0,
+            invalidated: 0,
+            vs16_trailing: false,
         }
     }
 
@@ -72,31 +78,6 @@ impl<'next> Iterator for BufferDiff<'_, 'next> {
     type Item = (u16, u16, &'next Cell);
 
     fn next(&mut self) -> Option<Self::Item> {
-        // First, yield any pending VS16 trailing cells.
-        if let Some(TrailingState {
-            ref mut next_index,
-            end,
-        }) = self.trailing
-        {
-            while *next_index < end {
-                let j = *next_index;
-                *next_index += 1;
-
-                // Only emit update if the symbol has changed.
-                // The style of hidden trailing cells is not visible, so style
-                // differences alone should not trigger updates that can cause
-                // cursor positioning issues on some terminals.
-                if !is_skip(&self.next[j]) && self.prev[j].symbol() != self.next[j].symbol() {
-                    let (tx, ty) = self.pos_of(j);
-                    return Some((tx, ty, &self.next[j]));
-                }
-            }
-
-            // Done with trailing cells; resume main loop past the wide character.
-            self.pos = end;
-            self.trailing = None;
-        }
-
         let len = self.next.len().min(self.prev.len());
         while self.pos < len {
             let i = self.pos;
@@ -105,55 +86,47 @@ impl<'next> Iterator for BufferDiff<'_, 'next> {
             let current = &self.next[i];
             let previous = &self.prev[i];
 
-            match current.diff_option {
-                CellDiffOption::Skip => {}
-                _ if is_skip(current) => {}
-
-                CellDiffOption::ForcedWidth(width) => {
-                    self.pos = self
-                        .pos
-                        .saturating_add(width.get().saturating_sub(1) as usize);
-                    if current != previous {
-                        let (x, y) = self.pos_of(i);
-                        return Some((x, y, &self.next[i]));
-                    }
+            // Decide whether this cell needs to be emitted, using the skip/invalidation state
+            // carried in from earlier columns (i.e. before folding in this cell's own width).
+            let emit = if is_skip(current) {
+                // Caller-managed cell: never emitted, but still participates in width accounting.
+                false
+            } else if self.to_skip > 0 {
+                // Inside the region physically covered by a preceding wide glyph in `next`.
+                // Normally suppressed (the terminal clears it when drawing the wide glyph), but
+                // some terminals fail to clear the trailing cell of a VS16 emoji, so emit it when
+                // its symbol changed. The style of a hidden trailing cell is not visible, so a
+                // style-only change must not trigger an update (it can mis-position the cursor).
+                self.vs16_trailing && previous.symbol() != current.symbol()
+            } else {
+                match current.diff_option {
+                    CellDiffOption::ForcedWidth(_) => current != previous,
+                    CellDiffOption::AlwaysUpdate => true,
+                    // `Skip` is handled by `is_skip` above; only `None` reaches this arm.
+                    _ => current != previous || self.invalidated > 0,
                 }
-                CellDiffOption::None | CellDiffOption::AlwaysUpdate => {
-                    // If the current cell is multi-width, ensure the trailing cells are
-                    // explicitly cleared when they previously contained non-blank content.
-                    // Some terminals do not reliably clear the trailing cell(s) when printing
-                    // a wide grapheme, which can result in visual artifacts (e.g., leftover
-                    // characters). Emitting an explicit update for the trailing cells avoids
-                    // this.
-                    let cell_width = current.cell_width() as usize;
-                    if matches!(current.diff_option, CellDiffOption::None) && current == previous {
-                        // Equal cells still need to account for multi-width skip.
-                        self.pos += cell_width.saturating_sub(1);
-                        continue;
-                    }
+            };
 
-                    // Work around terminals that fail to clear the trailing cell of certain
-                    // emoji presentation sequences (those containing VS16 / U+FE0F).
-                    // Only emit explicit clears for such sequences to avoid bloating diffs
-                    // for standard wide characters (e.g., CJK), which terminals handle well.
-                    let contains_vs16 =
-                        cell_width > 1 && current.symbol().chars().any(|c| c == '\u{FE0F}');
-
-                    if contains_vs16 {
-                        let trailing_end = (i + cell_width).min(len);
-                        self.trailing = Some(TrailingState {
-                            next_index: i + 1,
-                            end: trailing_end,
-                        });
-                    } else if cell_width > 1 {
-                        self.pos += cell_width.saturating_sub(1);
-                    } else {
-                        // single-width character, no position adjustment needed
-                    }
-
-                    let (x, y) = self.pos_of(i);
-                    return Some((x, y, &self.next[i]));
+            // Fold this cell into the skip/invalidation state for the following columns.
+            let width = current.cell_width() as usize;
+            if self.to_skip > 0 {
+                self.to_skip -= 1;
+                if self.to_skip == 0 {
+                    self.vs16_trailing = false;
                 }
+            } else {
+                self.to_skip = width.saturating_sub(1);
+                self.vs16_trailing =
+                    width > 1 && current.symbol().chars().any(|c| c == '\u{FE0F}');
+            }
+            // The previous glyph may have been wider than the next one; the cells it painted over
+            // must be redrawn even if their new content matches what we last drew there.
+            let affected = width.max(previous.cell_width() as usize);
+            self.invalidated = affected.max(self.invalidated).saturating_sub(1);
+
+            if emit {
+                let (x, y) = self.pos_of(i);
+                return Some((x, y, &self.next[i]));
             }
         }
 
@@ -300,6 +273,54 @@ mod tests {
             .collect();
 
         assert_eq!(diff, "x");
+    }
+
+    #[test]
+    fn shrinking_wide_glyph_clears_trailing_cell() {
+        // Regression for https://github.com/ratatui/ratatui/issues/2585 (introduced by #1605):
+        // the cell-diff-options refactor dropped the classic `invalidated` counter, so when a
+        // multi-width glyph (here the full-width plus ＋, U+FF0B) is replaced by narrower content,
+        // the trailing cell it physically painted over was left un-cleared. Because that trailing
+        // cell is blank in both buffers (`current == previous`), only the previous glyph's width
+        // can force the redraw — exactly what `invalidated` tracks.
+        let rect = Rect::new(0, 0, 2, 1);
+        let mut prev = Buffer::empty(rect);
+        prev.set_string(0, 0, "＋", crate::style::Style::new());
+        assert_eq!(prev.content[0].symbol(), "＋");
+        // The trailing cell is reset to a blank space when the wide glyph is written.
+        assert_eq!(prev.content[1].symbol(), " ");
+
+        // Next frame clears the glyph: both cells are blank.
+        let next = Buffer::empty(rect);
+        assert_eq!(next.content[1], prev.content[1]); // trailing cell is unchanged
+
+        let diff: Vec<_> = BufferDiff::new(&prev, &next).collect();
+        assert_eq!(diff.len(), 2, "both columns must be redrawn, got {diff:?}");
+        assert_eq!((diff[0].0, diff[0].1), (0, 0));
+        assert_eq!(diff[0].2.symbol(), " ");
+        // The trailing cell (1,0) must be emitted even though it is identical in both buffers,
+        // otherwise the right half of the old glyph (and its background) lingers on screen.
+        assert_eq!((diff[1].0, diff[1].1), (1, 0));
+        assert_eq!(diff[1].2.symbol(), " ");
+    }
+
+    #[test]
+    fn shrinking_wide_glyph_clears_trailing_background() {
+        use crate::style::{Color, Style};
+
+        // Same regression, framed as the reported symptom: a styled background painted across a
+        // wide glyph must be cleared from the trailing cell when the glyph shrinks away.
+        let rect = Rect::new(0, 0, 2, 1);
+        let mut prev = Buffer::empty(rect);
+        prev.set_string(0, 0, "＋", Style::new().bg(Color::Blue));
+
+        let next = Buffer::empty(rect); // blank, default background
+
+        let diff: Vec<_> = BufferDiff::new(&prev, &next).collect();
+        assert!(
+            diff.iter().any(|(x, y, _)| *x == 1 && *y == 0),
+            "trailing cell (1,0) must be redrawn to clear the leftover background, got {diff:?}"
+        );
     }
 
     #[test]
